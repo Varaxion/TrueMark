@@ -42,18 +42,26 @@ class AuthWrapper extends StatelessWidget {
       return const SignupScreen();
     }
 
-    // Check Firestore for user profile
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
+    try {
+      // Check Firestore for user profile
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
 
-    final data = doc.data();
-    if (data == null || data['name'] == null || data['phone'] == null) {
-      return ProfileSetupScreen();
+      final data = doc.data();
+      if (data == null || data['name'] == null || data['phone'] == null) {
+        return ProfileSetupScreen();
+      }
+
+      return const HomeScreen();
+    } on FirebaseException catch (e) {
+      // Return a friendly retry screen that shows the Firestore error message
+      final msg = e.message ?? 'Firestore error';
+      return _ErrorRetryScreen(message: 'Firestore error: $msg');
+    } catch (e) {
+      return _ErrorRetryScreen(message: 'Unexpected error: $e');
     }
-
-    return const HomeScreen();
   }
 
   @override
@@ -75,6 +83,39 @@ class AuthWrapper extends StatelessWidget {
 
         return snapshot.data!;
       },
+    );
+  }
+}
+
+class _ErrorRetryScreen extends StatelessWidget {
+  final String message;
+  const _ErrorRetryScreen({Key? key, required this.message}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Connection error')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(message, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  // Retry by rebuilding the AuthWrapper
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const AuthWrapper()),
+                  );
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
