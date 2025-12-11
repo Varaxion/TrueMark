@@ -1,55 +1,47 @@
 import 'dart:typed_data';
-import 'package:cryptography/cryptography.dart';
+import 'package:encrypt/encrypt.dart' as enc;
+import 'package:crypto/crypto.dart';
 
+// REPLACES previous implementation to use 'encrypt' package (Pure Dart, Stable)
 class CryptoService {
-  // Use AES-GCM with 256-bit keys for authenticated encryption
-  final AesGcm _aesGcm = AesGcm.with256bits();
-  final Sha256 _sha256 = Sha256();
+  // Use AES-CBC-PKCS7 (standard in encrypt package)
+  // AES-256 = 32 bytes Key, 16 bytes IV
 
-  /// Generates a secure random 256-bit (32-byte) key.
-  Future<SecretKey> generateRandomKey() async {
-    return await _aesGcm.newSecretKey();
+  /// Generates a secure random 32-byte key.
+  enc.Key generateRandomKey() {
+    return enc.Key.fromSecureRandom(32);
   }
 
-  /// Computes the SHA-256 hash of the given bytes.
-  Future<Uint8List> hashData(List<int> data) async {
-    final hash = await _sha256.hash(data);
-    return Uint8List.fromList(hash.bytes);
+  /// Generates a secure random 16-byte IV.
+  enc.IV generateRandomIV() {
+    return enc.IV.fromSecureRandom(16);
   }
 
-  /// Encrypts bytes using AES-256-GCM.
-  /// Returns a [SecretBox] payload containing ciphertext, nonce (IV), and auth tag (MAC).
-  Future<SecretBox> encryptBytes({
+  /// Encrypts bytes using AES-CBC.
+  /// Returns raw ciphertext bytes.
+  Uint8List encryptBytes({
     required List<int> data,
-    required SecretKey key,
-  }) async {
-    // AesGcm automatically generates a random nonce if one isn't provided.
-    // We let it handle nonce generation for safety.
-    return await _aesGcm.encrypt(
-      data,
-      secretKey: key,
-    );
+    required enc.Key key,
+    required enc.IV iv,
+  }) {
+    final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
+    final encrypted = encrypter.encryptBytes(data, iv: iv);
+    return encrypted.bytes;
   }
 
-  /// Decrypts a [SecretBox] (ciphertext + nonce + mac) using the key.
-  /// Throws [SecretBoxAuthenticationError] if authentication fails (tampering detected).
-  Future<List<int>> decryptBytes({
-    required SecretBox secretBox,
-    required SecretKey key,
-  }) async {
-    return await _aesGcm.decrypt(
-      secretBox,
-      secretKey: key,
-    );
+  /// Decrypts bytes using AES-CBC.
+  List<int> decryptBytes({
+    required List<int> ciphertext,
+    required enc.Key key,
+    required enc.IV iv,
+  }) {
+    final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
+    final decrypted = encrypter.decryptBytes(enc.Encrypted(Uint8List.fromList(ciphertext)), iv: iv);
+    return decrypted;
   }
 
-  /// Helper to convert raw bytes (from storage/metadata) back into a SecretKey object.
-  Future<SecretKey> importKey(List<int> keyBytes) async {
-    return SecretKey(keyBytes);
-  }
-
-  /// Helper to extract raw bytes from a SecretKey object (for wrapping/storage).
-  Future<List<int>> exportKey(SecretKey key) async {
-    return await key.extractBytes();
+  /// Hashes data (SHA-256)
+  List<int> hashData(List<int> data) {
+    return sha256.convert(data).bytes;
   }
 }

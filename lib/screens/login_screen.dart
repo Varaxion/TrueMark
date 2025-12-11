@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:truemark/screens/home_screen.dart';
+import 'package:truemark/screens/secure_inbox_screen.dart';
 import 'package:truemark/widgets/custom_error_toast.dart';
 import 'package:oktoast/oktoast.dart';
 import 'signup_screen.dart';
@@ -38,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => hasProfile ? const HomeScreen() : ProfileSetupScreen(),
+            builder: (_) => hasProfile ? const SecureInboxScreen() : ProfileSetupScreen(),
           ),
         );
       }

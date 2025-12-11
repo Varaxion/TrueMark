@@ -36,10 +36,10 @@ class LoginLogger {
       'platform': platform,
     };
 
-    try {
-      await FirebaseFirestore.instance.collection('login_attempts').add(logEntry);
-    } catch (e) {
-      print('Failed to log login attempt: $e');
-    }
+    // try {
+    //   await FirebaseFirestore.instance.collection('login_attempts').add(logEntry);
+    // } catch (e) {
+    //   print('Failed to log login attempt: $e');
+    // }
   }
 }

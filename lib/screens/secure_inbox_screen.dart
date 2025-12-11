@@ -46,10 +46,12 @@ class _SecureInboxScreenState extends State<SecureInboxScreen> {
       // Note: In real app, you'd pick a specific receiver. For demo, we send to ourselves or a test user.
       final receiverId = _currentUserId; 
       
+      print('>>> [DEBUG] Starting Prepare Upload (Encryption)...');
       final prepResult = await _transmissionService.prepareUpload(
         fileBytes: fileBytes,
         userContext: utf8.encode(_currentUserId),
       );
+      print('>>> [DEBUG] Encryption Done. Payload size: ${(prepResult['payload'] as List).length}');
 
       final payload = prepResult['payload'];
       final metaMap = prepResult['metadata'];
@@ -72,11 +74,13 @@ class _SecureInboxScreenState extends State<SecureInboxScreen> {
         payloadUrl: '', // Set by service
       );
 
+      print('>>> [DEBUG] Starting Firestore/Storage Upload...');
       // 3. Upload
       await _firestoreService.sendFileTransfer(
         stegoPayload: payload,
         metadata: metadata,
       );
+      print('>>> [DEBUG] Upload Finished!');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -155,7 +159,39 @@ class _SecureInboxScreenState extends State<SecureInboxScreen> {
       body: StreamBuilder<List<TransferMetadata>>(
         stream: _firestoreService.getIncomingTransfers(_currentUserId),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+          if (snapshot.hasError) {
+            final errorStr = snapshot.error.toString();
+            if (errorStr.contains('permission-denied') || errorStr.contains('MISSING_PERMISSIONS')) {
+               return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.lock_outline, size: 48, color: Colors.orange),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Database Access Pending',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'To see your secure messages, please update your Firestore Security Rules in the Firebase Console to allow access to the "transfers" collection.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                         // We can't open browser easily from Windows without url_launcher
+                        onPressed: () {}, 
+                        child: const Text('Check Firebase Console'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return Center(child: Text('Error: $errorStr'));
+          }
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
           final transfers = snapshot.data!;
