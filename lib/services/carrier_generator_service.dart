@@ -4,7 +4,7 @@ import 'package:cryptography/cryptography.dart';
 class CarrierGeneratorService {
   // We use ChaCha20 as our deterministic Pseudo-Random Function (PRF) 'Generator'.
   // In the future, this can be swapped with a quantized ONNX model.
-  final Algorithm _generatorAlgo = Chacha20.poly1305Aead();
+  final Chacha20 _generatorAlgo = Chacha20.poly1305Aead();
 
   /// Generates a deterministic 'carrier' byte stream based on a seed.
   /// 

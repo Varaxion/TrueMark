@@ -3,7 +3,7 @@ import 'package:cryptography/cryptography.dart';
 
 class CryptoService {
   // Use AES-GCM with 256-bit keys for authenticated encryption
-  final Algorithm _aesGcm = AesGcm.with256bits();
+  final AesGcm _aesGcm = AesGcm.with256bits();
   final Sha256 _sha256 = Sha256();
 
   /// Generates a secure random 256-bit (32-byte) key.

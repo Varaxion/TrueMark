@@ -118,6 +118,28 @@ class _LoginScreenState extends State<LoginScreen> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () async {
+                            final email = _emailController.text.trim();
+                            if (email.isEmpty) {
+                              showToast("Please enter your email first");
+                              return;
+                            }
+                            try {
+                              await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                              showToast(
+                                "Password reset email sent to $email",
+                                backgroundColor: Colors.green,
+                              );
+                            } catch (e) {
+                              showToast("Error: $e");
+                            }
+                          },
+                          child: const Text("Forgot Password?"),
+                        ),
+                      ),
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,

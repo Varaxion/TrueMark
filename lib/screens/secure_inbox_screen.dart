@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -24,10 +26,18 @@ class _SecureInboxScreenState extends State<SecureInboxScreen> {
   Future<void> _handleSendFile() async {
     // 1. Pick File
     FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result == null || result.files.single.bytes == null) return;
     
-    final fileBytes = result.files.single.bytes!;
+    if (result == null) return;
+    
+    Uint8List? fileBytes = result.files.single.bytes;
     final fileName = result.files.single.name;
+
+    // On Desktop/Mobile, 'bytes' is often null, so we read from 'path'
+    if (fileBytes == null && result.files.single.path != null) {
+      fileBytes = await File(result.files.single.path!).readAsBytes();
+    }
+
+    if (fileBytes == null) return; // Should not happen if path exists
 
     setState(() => _isProcessing = true);
 
