@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'screens/signup_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/secure_inbox_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,7 +55,7 @@ class AuthWrapper extends StatelessWidget {
         return ProfileSetupScreen();
       }
 
-      return const HomeScreen();
+      return const SecureInboxScreen();
     } on FirebaseException catch (e) {
       // Return a friendly retry screen that shows the Firestore error message
       final msg = e.message ?? 'Firestore error';
