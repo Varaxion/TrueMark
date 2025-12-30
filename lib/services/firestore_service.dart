@@ -1,29 +1,76 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import '../models/transfer_metadata.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-  final _uuid = const Uuid();
-
-  /// Uploads the StegoPayload to Storage (Transport Layer) and saves Metadata to Firestore.
-  /// Returns the ID of the created transfer.
+  // Note: We intentionally avoid 'FirebaseStorage' import to prevent Windows C++ SDK Linker Errors.
+  
+  /// Uploads the StegoPayload to Storage (Transport Layer) using REST API to prevent Windows C++ Crashes.
+  /// Saves Metadata to Firestore.
   Future<void> sendFileTransfer({
     required List<int> stegoPayload,
     required TransferMetadata metadata,
   }) async {
-    // STUB: Simulate upload to bypass persistent Windows C++ Build Failures.
-    print('>>> [DEBUG] SIMULATING UPLOAD (Windows Build Workaround)');
-    await Future.delayed(const Duration(seconds: 2));
-    print('>>> [DEBUG] Upload Simulated. Encryption verified.');
+    final transferId = const Uuid().v4();
+    final path = 'secure_transfers/$transferId.bin';
     
-    // We confirm that Encryption pipeline works (Pure Dart).
-    // Actual Cloud Upload will function on Android/Web without C++ issues.
-    return;
+    print('>>> [DEBUG] Starting REST Upload to: $path');
+
+    // 1. Upload via REST (Safe for Windows)
+    final downloadUrl = await _uploadViaRest(stegoPayload, path);
+    print('>>> [DEBUG] REST Upload Success. URL: $downloadUrl');
+
+    // 2. Save Metadata to Firestore
+    final finalMeta = metadata.copyWith(
+      id: transferId,
+      payloadUrl: downloadUrl,
+    );
+
+    await _firestore
+        .collection('transfers')
+        .doc(transferId)
+        .set(finalMeta.toMap());
+        
+    print('>>> [DEBUG] Metadata Saved to Firestore.');
+  }
+
+  /// Internal helper to upload using raw HTTP (Bypasses C++ SDK)
+  Future<String> _uploadViaRest(List<int> bytes, String storagePath) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('No user logged in - cannot obtain upload token.');
+    
+    final token = await user.getIdToken();
+    
+    // Hardcoded bucket avoids querying FirebaseStorage plugin (which crashes build)
+    const bucket = 'truemark-5f8bb.appspot.com'; 
+    
+    // URL Encode the path
+    final encodedPath = Uri.encodeComponent(storagePath);
+    final url = 'https://firebasestorage.googleapis.com/v0/b/$bucket/o?name=$encodedPath';
+    
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/octet-stream',
+      },
+      body: bytes,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('REST Upload Failed (${response.statusCode}): ${response.body}');
+    }
+
+    final json = jsonDecode(response.body);
+    final name = json['name'];
+    final bucketName = json['bucket'];
+    final downloadToken = json['downloadTokens']; 
+    
+    return 'https://firebasestorage.googleapis.com/v0/b/$bucketName/o/${Uri.encodeComponent(name)}?alt=media&token=$downloadToken';
   }
 
   /// Listens for incoming transfers for a specific user.
