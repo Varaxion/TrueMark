@@ -56,4 +56,30 @@ class TransferMetadata {
       payloadUrl: map['payloadUrl'] ?? '',
     );
   }
+
+  TransferMetadata copyWith({
+    String? id,
+    String? senderId,
+    String? receiverId,
+    String? fileName,
+    int? timestamp,
+    String? seed,
+    String? iv,
+    String? authTag,
+    String? wrappedKey,
+    String? payloadUrl,
+  }) {
+    return TransferMetadata(
+      id: id ?? this.id,
+      senderId: senderId ?? this.senderId,
+      receiverId: receiverId ?? this.receiverId,
+      fileName: fileName ?? this.fileName,
+      timestamp: timestamp ?? this.timestamp,
+      seed: seed ?? this.seed,
+      iv: iv ?? this.iv,
+      authTag: authTag ?? this.authTag,
+      wrappedKey: wrappedKey ?? this.wrappedKey,
+      payloadUrl: payloadUrl ?? this.payloadUrl,
+    );
+  }
 }

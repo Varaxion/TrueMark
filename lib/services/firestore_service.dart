@@ -1,12 +1,14 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart'; // Restoring import for parity
 import 'package:uuid/uuid.dart';
 import '../models/transfer_metadata.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // NO FirebaseStorage imports to ensure Windows Build Stability.
+  final FirebaseStorage _storage = FirebaseStorage.instance; // Restoring usage for parity
 
   /// Uploads the StegoPayload to Storage (Transport Layer).
   /// STUBBED for Windows to prevent C++ SDK Crashes.
@@ -15,15 +17,17 @@ class FirestoreService {
     required TransferMetadata metadata,
   }) async {
     final transferId = const Uuid().v4();
+    final ref = _storage.ref().child('secure_uploads/$transferId.bin');
     
-    print('>>> [DEBUG] SIMULATING UPLOAD for Windows Stability.');
-    // Simulate network delay
-    await Future.delayed(const Duration(seconds: 2));
+    // 1. Upload Payload to Firebase Storage (Native SDK)
+    print('>>> [UPLOAD] Starting upload to ${ref.fullPath}...');
+    final task = await ref.putData(
+      Uint8List.fromList(stegoPayload),
+      SettableMetadata(contentType: 'application/octet-stream'),
+    );
     
-    // Generates a mock URL. On Android (later), we will uncomment real upload.
-    final downloadUrl = 'https://simulated-upload.windows/feature-bypass/$transferId.bin';
-
-    print('>>> [DEBUG] Upload Simulated. Encryption verified. URL: $downloadUrl');
+    final downloadUrl = await task.ref.getDownloadURL();
+    print('>>> [UPLOAD] Success. URL: $downloadUrl');
 
     // 2. Save Metadata to Firestore
     final finalMeta = metadata.copyWith(
@@ -36,7 +40,7 @@ class FirestoreService {
         .doc(transferId)
         .set(finalMeta.toMap());
         
-    print('>>> [DEBUG] Metadata Saved to Firestore.');
+    print('>>> [FIRESTORE] Metadata Saved.');
   }
 
   /// Listens for incoming transfers for a specific user.
