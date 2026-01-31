@@ -1,10 +1,12 @@
-// lib/screens/verification_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
+import 'package:intl/intl.dart';
 import '../services/steg_service.dart';
+import '../services/firestore_service.dart';
+import '../utils/constants.dart';
+import '../models/ownership_record.dart';
 
 class VerificationScreen extends StatefulWidget {
   const VerificationScreen({Key? key}) : super(key: key);
@@ -15,239 +17,243 @@ class VerificationScreen extends StatefulWidget {
 
 class _VerificationScreenState extends State<VerificationScreen> {
   final ImagePicker _picker = ImagePicker();
-  XFile? _pickedFile;
-  bool _loading = false;
-  String? _error;
-  String? _extractedPayload; // decrypted string extracted
-  String? _verificationResult; // human readable result
-  final TextEditingController _passwordController = TextEditingController();
-
-  @override
-  void dispose() {
-    _passwordController.dispose();
-    super.dispose();
-  }
+  File? _imageFile;
+  bool _scanning = false;
+  
+  // Verification Results
+  bool _hasResult = false;
+  bool _isSignatureValid = false;
+  OwnershipRecord? _record;
+  String _statusMessage = '';
 
   Future<void> _pickImage() async {
-    setState(() {
-      _error = null;
-      _extractedPayload = null;
-      _verificationResult = null;
-    });
-
-    try {
-      final XFile? f = await _picker.pickImage(source: ImageSource.gallery);
-      if (f == null) return;
-      setState(() { _pickedFile = f; });
-    } catch (e) {
-      setState(() { _error = 'Failed to pick image: $e'; });
+    final picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        _imageFile = File(picked.path);
+        _hasResult = false;
+        _statusMessage = '';
+      });
+      _performVerification();
     }
   }
 
-  Future<void> _verify() async {
-    if (_pickedFile == null) {
-      setState(() { _error = 'Pick an image first.'; });
-      return;
-    }
-    final password = _passwordController.text.trim();
-    if (password.isEmpty) {
-      setState(() { _error = 'Enter the encryption password (image id) to try decryption.'; });
-      return;
-    }
+  Future<void> _performVerification() async {
+    if (_imageFile == null) return;
 
     setState(() {
-      _loading = true;
-      _error = null;
-      _extractedPayload = null;
-      _verificationResult = null;
+      _scanning = true;
+      _statusMessage = 'Scanning for TrueMark signature...';
+      _hasResult = false;
     });
 
-    try {
-      final file = File(_pickedFile!.path);
+    // Artifical delay for "Scanning" feel
+    await Future.delayed(const Duration(seconds: 2));
 
-      // Attempt extraction and decryption. This should return the plaintext embedded string or null.
-      final extracted = await StegService.extractStringFromImage(
-        inputFile: file,
-        password: password,
+    try {
+      // 1. Attempt to Extract Signature
+      final extractedPayload = await StegService.extractStringFromImage(
+        inputFile: _imageFile!,
+        password: kTrueMarkSharedKey,
       );
 
-      if (extracted == null) {
+      if (extractedPayload == null) {
         setState(() {
-          _extractedPayload = null;
-          _verificationResult = 'No valid embedded payload found or decryption failed with the given password.';
+          _scanning = false;
+          _hasResult = true;
+          _isSignatureValid = false;
+          _statusMessage = 'No TrueMark Signature found.\nThis image is likely unprotected or has been tampered with (stripped).';
         });
         return;
       }
 
+      // 2. Parse Payload "UID|Timestamp|Hash"
+      final parts = extractedPayload.split('|');
+      if (parts.length != 3) {
+         setState(() {
+          _scanning = false;
+          _hasResult = true;
+          _isSignatureValid = false;
+          _statusMessage = 'Corrupted Signature Found.\nStructure mismatch.';
+        });
+        return;
+      }
+
+      final uid = parts[0];
+      final timestampStr = parts[1];
+      final originalHash = parts[2];
+
+      // 3. Verify Against Registry (Firestore)
+      setState(() => _statusMessage = 'Signature found. Verifying with Space Registry...');
+      
+      final service = FirestoreService();
+      final record = await service.verifyOwnership(originalHash);
+
+      if (record == null) {
+         setState(() {
+          _scanning = false;
+          _hasResult = true;
+          _isSignatureValid = false;
+          _statusMessage = 'Signature is Fake.\nNo matching record found in TrueMark Cloud Registry.';
+        });
+        return;
+      }
+
+      // 4. Double check UID match
+      if (record.ownerUid != uid) {
+          setState(() {
+          _scanning = false;
+          _hasResult = true;
+          _isSignatureValid = false;
+          _statusMessage = 'Identity Mismatch.\nSignature ID does not match Registry Owner.';
+        });
+        return;
+      }
+
+      // SUCCESS
       setState(() {
-        _extractedPayload = extracted;
+        _scanning = false;
+        _hasResult = true;
+        _isSignatureValid = true;
+        _record = record;
+        _statusMessage = 'SUCCESS: Image Authenticated!';
       });
 
-      // If extraction succeeded, check Firestore record for this user
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        setState(() {
-          _verificationResult = 'Not signed in; cannot verify against Firestore.';
-        });
-        return;
-      }
-
-      // We expect imageId format equals extracted (your scheme)
-      final imageId = extracted;
-      final docRef = FirebaseFirestore.instance
-          .collection('userMeta')
-          .doc(user.uid)
-          .collection('images')
-          .doc(imageId);
-
-      final doc = await docRef.get();
-      if (!doc.exists) {
-        setState(() {
-          _verificationResult = 'Payload extracted: "$imageId", but no matching record found in Firestore for this user.';
-        });
-      } else {
-        final data = doc.data()!;
-        setState(() {
-          _verificationResult = 'Verified: extracted id matches Firestore. Stored metadata: ${data.keys.map((k) => "$k").join(", ")}';
-        });
-      }
     } catch (e) {
       setState(() {
-        _error = 'Verification failed: $e';
-      });
-    } finally {
-      setState(() {
-        _loading = false;
+        _scanning = false;
+        _hasResult = true;
+        _isSignatureValid = false;
+        _statusMessage = 'Error during verification: $e';
       });
     }
   }
 
-  Widget _preview() {
-    if (_pickedFile == null) {
+  Widget _buildResultCard() {
+    if (!_hasResult) return const SizedBox.shrink();
+
+    if (!_isSignatureValid) {
       return Container(
-        height: 220,
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 12.0),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.indigo.shade200, width: 2),
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0,4))],
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.red.shade200),
         ),
-        child: const Center(child: Text('No image selected')),
+        child: Column(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 60),
+            const SizedBox(height: 10),
+            const Text(
+              'VERIFICATION FAILED',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              _statusMessage,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.redAccent),
+            ),
+          ],
+        ),
       );
     }
-    return SizedBox(
-      height: 220,
-      width: double.infinity,
-      child: Image.file(File(_pickedFile!.path), fit: BoxFit.contain),
+
+    // Success Card
+    final date = DateTime.fromMillisecondsSinceEpoch(_record!.timestamp.toInt());
+    final fmtDate = DateFormat.yMMMd().add_jm().format(date);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.teal.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.teal.shade200, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Icon(Icons.verified, color: Colors.teal, size: 70),
+          const SizedBox(height: 10),
+          const Center(
+            child: Text(
+              'AUTHENTIC IMAGE',
+              style: TextStyle(color: Colors.teal, fontWeight: FontWeight.900, fontSize: 22, letterSpacing: 1),
+            ),
+          ),
+          const Divider(height: 30),
+          _infoRow('Creator', _record!.ownerEmail),
+          _infoRow('Created', fmtDate),
+          _infoRow('Registry ID', _record!.imageHash.substring(0, 10) + '...'),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {}, 
+            child: const Text('View Full Certificate'),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(label, style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: const Text(
-          'Verify',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 36,
-            color: Colors.indigo,
-            letterSpacing: 0.5,
-          ),
-        ),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.indigo,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      appBar: AppBar(title: const Text('Verify Image')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _preview(),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                    elevation: 4,
-                  ),
-                  onPressed: _pickImage,
-                  icon: const Icon(Icons.photo_library),
-                  label: const Text('Pick image'),
-                ),
-                const SizedBox(width: 18),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade200,
-                    foregroundColor: Colors.black87,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                  ),
-                  onPressed: _pickedFile == null
-                      ? null
-                      : () {
-                          setState(() {
-                            _pickedFile = null;
-                            _extractedPayload = null;
-                            _verificationResult = null;
-                          });
-                        },
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Clear'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: TextFormField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Encryption password (image id)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _loading
-                ? const CircularProgressIndicator()
-                : SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 4,
-                      ),
-                      onPressed: _verify,
-                      child: const Text('Verify'),
-                    ),
-                  ),
-            const SizedBox(height: 12),
-            if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
-            if (_extractedPayload != null) ...[
-              const SizedBox(height: 8),
-              Text('Extracted payload: $_extractedPayload', style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-            if (_verificationResult != null) ...[
-              const SizedBox(height: 8),
-              Text(_verificationResult!, style: const TextStyle(color: Colors.green)),
-            ],
+             InkWell(
+               onTap: _scanning ? null : _pickImage,
+               child: Container(
+                 height: 200,
+                 width: double.infinity,
+                 decoration: BoxDecoration(
+                   color: Colors.grey.shade200,
+                   borderRadius: BorderRadius.circular(16),
+                   border: Border.all(color: Colors.grey.shade400),
+                 ),
+                 child: _imageFile != null
+                     ? ClipRRect(
+                         borderRadius: BorderRadius.circular(16),
+                         child: Image.file(_imageFile!, fit: BoxFit.cover),
+                       )
+                     : const Column(
+                         mainAxisAlignment: MainAxisAlignment.center,
+                         children: [
+                           Icon(Icons.qr_code_scanner, size: 50, color: Colors.indigo),
+                           SizedBox(height: 10),
+                           Text('Tap to Scan Image'),
+                         ],
+                       ),
+               ),
+             ),
+             const SizedBox(height: 30),
+             if (_scanning) ...[
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(_statusMessage),
+             ] else ...[
+                _buildResultCard(),
+             ]
           ],
         ),
       ),

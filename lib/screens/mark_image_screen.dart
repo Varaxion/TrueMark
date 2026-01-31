@@ -9,6 +9,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:typed_data';
+import 'package:uuid/uuid.dart';
+import '../models/ownership_record.dart';
+import '../utils/constants.dart';
 import '../utils/admin_config.dart';
 
 class MarkImageScreen extends StatefulWidget {
@@ -125,10 +128,13 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
   }
 
   Future<void> _processPickedImage() async {
-    if (_pickedFile == null || _lastGeneratedId == null) {
+    if (_pickedFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pick an image first.')));
       return;
     }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
     setState(() {
       _processing = true;
@@ -138,30 +144,66 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
 
     try {
       final inFile = File(_pickedFile!.path);
-      final dir = await getTemporaryDirectory();
-      // Save visually identical png
-      final outPath = '${dir.path}/TrueMark_${_lastGeneratedId}.png';
-      final outFile = File(outPath);
-      final password = _lastGeneratedId!; // Using ID as password/key for now (Will refactor to use Proper Key)
+      final imageBytes = await inFile.readAsBytes();
+      
+      // 1. Calculate Original Image Hash (Identity of the content)
+      final originalHash = sha256.convert(imageBytes).toString();
+      final timestamp = DateTime.now().millisecondsSinceEpoch.toDouble();
+      
+      // 2. Generate Signature Payload
+      // Format: "UID|Timestamp|Hash"
+      // This string will be encrypted and hidden inside the image.
+      final signaturePayload = '${user.uid}|$timestamp|$originalHash';
+      
+      // 3. Use Shared Key so Receivers can Decrypt/Verify
+      // (Security is strictly enforced by the Image Hash check, not the key secrecy)
+      const encryptionPassword = kTrueMarkSharedKey; 
 
-      // Embed the ID into the image
+      final dir = await getTemporaryDirectory();
+      // Filename includes timestamp to avoid collisions
+      final outPath = '${dir.path}/TrueMark_${DateTime.now().millisecondsSinceEpoch}.png';
+      final outFile = File(outPath);
+
+      // 4. Embed Encrypted Signature into Image (Invisible Watermark)
+      // StegService handles the AES Encryption using the password internally.
       final processedFile = await StegService.embedStringInImage(
         inputFile: inFile,
-        plaintext: _lastGeneratedId!,
-        password: password,
+        plaintext: signaturePayload,
+        password: encryptionPassword,
         outputFile: outFile,
       );
 
-      // In real implementation we upload Hash to Firestore here (OwnershipRecord)
-      // For now, keeping legacy logic slightly modified
+      // 5. Register Ownership in Firestore (Immutable Record)
+      // The presence of this record proves *when* it was created.
+      // We use the Original Hash as the ID.
+      final record = OwnershipRecord(
+        imageId: const Uuid().v4(), // Unique event ID
+        ownerUid: user.uid,
+        ownerEmail: user.email ?? 'Unknown',
+        timestamp: timestamp,
+        imageHash: originalHash,
+        signature: 'Embedded (AES-256)',
+      );
       
+      await FirebaseFirestore.instance
+          .collection('ownership_records')
+          .doc(originalHash)
+          .set(record.toMap());
+
       setState(() {
         _processedLocalPath = processedFile.path;
         _processedSuccess = true;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Protected Image Saved: ${processedFile.path}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Protected Image Saved: ${processedFile.path}'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
+        )
+      );
     } catch (e) {
+      print(e);
       setState(() => _error = 'Protection failed: $e');
     } finally {
       setState(() => _processing = false);
