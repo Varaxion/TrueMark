@@ -77,9 +77,10 @@ class HomeScreen extends StatelessWidget {
             // ACTION BUTTONS
             Expanded(
               child: GridView.count(
-                crossAxisCount: 1,
+                crossAxisCount: 2,
                 mainAxisSpacing: 20,
-                childAspectRatio: 2.5,
+                crossAxisSpacing: 20, // Added spacing between columns
+                childAspectRatio: 1.5, // Taller cards for better info density
                 children: [
                   _DashboardCard(
                     icon: Icons.shield,

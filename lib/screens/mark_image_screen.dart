@@ -1,11 +1,13 @@
 // lib/screens/mark_image_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/image_service.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/steg_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/firestore_rest_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:typed_data';
@@ -70,18 +72,24 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
       _error = null;
     });
     try {
-      final XFile? file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
-      if (file == null) {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any, // Using 'any' to avoid potential Windows filter crash
+        allowMultiple: false,
+      );
+
+      if (result == null || result.files.isEmpty) {
         setState(() => _loading = false);
         return;
       }
+      
+      final path = result.files.single.path!;
       final generatedId = await ImageService.generateNextImageId(allowAnonymousFallback: false);
 
       setState(() {
-        _pickedFile = file;
+        _pickedFile = XFile(path); // Wrap in XFile to keep compatible with Image widget logic
         _lastGeneratedId = generatedId;
         if (_baseNumber != null && generatedId.startsWith(_baseNumber!)) {
-           // simple parse logic
+           // simple count update logic
            _imageCount++; 
         }
       });
@@ -114,6 +122,46 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
       setState(() => _error = 'Failed to capture image: $e');
     } finally {
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _enterPathManually() async {
+    final controller = TextEditingController();
+    final path = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Enter Image Path'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'C:\\Users\\...\\image.png',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.replaceAll('"', '')), // Remove quotes if copy-pasted
+            child: const Text('Use This Path'),
+          ),
+        ],
+      ),
+    );
+
+    if (path != null && path.isNotEmpty) {
+      final file = File(path);
+      if (await file.exists()) {
+         final generatedId = await ImageService.generateNextImageId(allowAnonymousFallback: false);
+         // final generatedId = "DEBUG_123";
+         
+         setState(() {
+           _pickedFile = XFile(path);
+           _lastGeneratedId = generatedId;
+           _error = null;
+         });
+      } else {
+        setState(() => _error = 'File does not exist: $path');
+      }
     }
   }
 
@@ -159,13 +207,44 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
       // (Security is strictly enforced by the Image Hash check, not the key secrecy)
       const encryptionPassword = kTrueMarkSharedKey; 
 
-      final dir = await getTemporaryDirectory();
-      // Filename includes timestamp to avoid collisions
-      final outPath = '${dir.path}/TrueMark_${DateTime.now().millisecondsSinceEpoch}.png';
-      final outFile = File(outPath);
+      // 3b. Prompt User to Save File
+      String? outputFilePath;
+      
+      if (kSafeModeWindows && Platform.isWindows) {
+        // Safe Mode: Manual Entry for Output Path
+        final controller = TextEditingController();
+        outputFilePath = await showDialog<String>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Save To Path (Safe Mode)'),
+            content: TextField(
+              controller: controller,
+              decoration: const InputDecoration(hintText: 'C:\\Users\\...\\protected.png'),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, controller.text.replaceAll('"', '')), 
+                child: const Text('Save')
+              )
+            ],
+          ),
+        );
+      } else {
+         // Standard Mode: Use File Picker
+         outputFilePath = await FilePicker.platform.saveFile(
+          dialogTitle: 'Save Protected Image To...',
+          fileName: 'TrueMark_Protected_${DateTime.now().millisecondsSinceEpoch}.png',
+        );
+      }
 
-      // 4. Embed Encrypted Signature into Image (Invisible Watermark)
-      // StegService handles the AES Encryption using the password internally.
+      if (outputFilePath == null || outputFilePath.isEmpty) {
+        setState(() => _processing = false);
+        return;
+      }
+      
+      final outFile = File(outputFilePath);
+
+      // 4. Embed Encrypted Signature into Image
       final processedFile = await StegService.embedStringInImage(
         inputFile: inFile,
         plaintext: signaturePayload,
@@ -173,11 +252,9 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
         outputFile: outFile,
       );
 
-      // 5. Register Ownership in Firestore (Immutable Record)
-      // The presence of this record proves *when* it was created.
-      // We use the Original Hash as the ID.
+      // 5. Create Ownership Record
       final record = OwnershipRecord(
-        imageId: const Uuid().v4(), // Unique event ID
+        imageId: const Uuid().v4(), 
         ownerUid: user.uid,
         ownerEmail: user.email ?? 'Unknown',
         timestamp: timestamp,
@@ -185,10 +262,18 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
         signature: 'Embedded (AES-256)',
       );
       
-      await FirebaseFirestore.instance
-          .collection('ownership_records')
-          .doc(originalHash)
-          .set(record.toMap());
+      if (Platform.isWindows) {
+        // Windows: Use REST API to avoid C++ Crash
+        print('WINDOWS: Using Firestore REST API...');
+        final restService = FirestoreRestService();
+        await restService.registerOwnership(record);
+      } else {
+        // Android/iOS: Use Native SDK
+        await FirebaseFirestore.instance
+            .collection('ownership_records')
+            .doc(originalHash)
+            .set(record.toMap());
+      }
 
       setState(() {
         _processedLocalPath = processedFile.path;
@@ -247,25 +332,50 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildUploaderCard(),
+            if (kSafeModeWindows && Platform.isWindows) ...[
+               // SAFE MODE UI: Manual Path Only
+               const Card(
+                 color: Colors.amberAccent,
+                 child: Padding(
+                   padding: EdgeInsets.all(8.0),
+                   child: Text('⚠️ WINDOWS SAFE MODE ACTIVE\nUsing Manual Paths to bypass crash.'),
+                 ),
+               ),
+               const SizedBox(height: 10),
+               ElevatedButton.icon(
+                 onPressed: _enterPathManually,
+                 icon: const Icon(Icons.folder_open),
+                 label: const Text('Select Source Image (Manual Path)'),
+               ),
+            ] else ...[
+                // STANDARD UI
+                _buildUploaderCard(),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _pickFromGallery,
+                      icon: const Icon(Icons.image),
+                      label: const Text('Gallery'),
+                    ),
+                    if (!Platform.isWindows) 
+                      ElevatedButton.icon(
+                        onPressed: _pickFromCamera,
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text('Camera'),
+                      ),
+                  ],
+                ),
+            ],
+
             const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _pickFromGallery,
-                  icon: const Icon(Icons.image),
-                  label: const Text('Gallery'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _pickFromCamera,
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('Camera'),
-                ),
+
+            if (_pickedFile != null) ...[
+              if (kSafeModeWindows) ...[
+                 Text('Selected: ${_pickedFile!.path}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                 const SizedBox(height: 10),
               ],
-            ),
-            const SizedBox(height: 20),
-            if (_pickedFile != null)
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -280,16 +390,18 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
                     : const Text('APPLY TRUEMARK PROTECTION'),
                 ),
               ),
+            ],
+            
             if (_processedSuccess) ...[
                const SizedBox(height: 20),
-               const Card(
+               Card(
                  color: Colors.greenAccent,
                  child: Padding(
-                   padding: EdgeInsets.all(12),
+                   padding: const EdgeInsets.all(12),
                    child: Row(children: [
-                     Icon(Icons.check_circle),
-                     SizedBox(width: 10),
-                     Expanded(child: Text('Image Protected Successfully!\nSaved to gallery/temp.'))
+                     const Icon(Icons.check_circle),
+                     const SizedBox(width: 10),
+                     Expanded(child: Text('Success!\nSaved to: $_processedLocalPath'))
                    ]),
                  ),
                )

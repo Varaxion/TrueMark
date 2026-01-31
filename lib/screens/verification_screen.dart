@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:crypto/crypto.dart';
 import 'package:intl/intl.dart';
 import '../services/steg_service.dart';
 import '../services/firestore_service.dart';
+import '../services/firestore_rest_service.dart';
 import '../utils/constants.dart';
 import '../models/ownership_record.dart';
 
@@ -27,15 +28,49 @@ class _VerificationScreenState extends State<VerificationScreen> {
   String _statusMessage = '';
 
   Future<void> _pickImage() async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.any, 
+      allowMultiple: false
+    );
+    
+    if (result != null && result.files.isNotEmpty) {
+      final path = result.files.single.path!;
       setState(() {
-        _imageFile = File(picked.path);
+        _imageFile = File(path);
         _hasResult = false;
         _statusMessage = '';
       });
       _performVerification();
     }
+  }
+
+  Future<void> _enterPathManually() async {
+      final controller = TextEditingController();
+      final path = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Enter Image Path'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: 'C:\\path\\to\\image.png'),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, controller.text.replaceAll('"', '')),
+              child: const Text('Verify This File'),
+            )
+          ],
+        ),
+      );
+
+      if (path != null && path.isNotEmpty) {
+        setState(() {
+          _imageFile = File(path);
+          _hasResult = false;
+          _statusMessage = '';
+        });
+        _performVerification();
+      }
   }
 
   Future<void> _performVerification() async {
@@ -80,14 +115,28 @@ class _VerificationScreenState extends State<VerificationScreen> {
       }
 
       final uid = parts[0];
-      final timestampStr = parts[1];
+      // final timestampStr = parts[1]; // unused
       final originalHash = parts[2];
-
-      // 3. Verify Against Registry (Firestore)
-      setState(() => _statusMessage = 'Signature found. Verifying with Space Registry...');
       
-      final service = FirestoreService();
-      final record = await service.verifyOwnership(originalHash);
+      
+      OwnershipRecord? record;
+
+      if (Platform.isWindows) {
+         // REST API for Windows
+         print('WINDOWS: Verifying via REST API...');
+         final restService = FirestoreRestService();
+         record = await restService.verifyOwnership(originalHash);
+         // Note: If 404, record is null
+      } else {
+         // Native SDK for Android
+         final service = FirestoreService();
+         record = await service.verifyOwnership(originalHash);
+      }
+      
+      // If SafeMode (Manual Picker) is active, we still try the REST call first.
+      // If REST fails (e.g. auth error, network), we could fall back to offline, 
+      // but "Solving Problem Completely" implies we want the DB check.
+
 
       if (record == null) {
          setState(() {
@@ -109,6 +158,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
         });
         return;
       }
+      
+      // Update message
+      _statusMessage = 'SUCCESS: Image Authenticated!\nVerified against TrueMark Cloud Registry.';
 
       // SUCCESS
       setState(() {
@@ -116,7 +168,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         _hasResult = true;
         _isSignatureValid = true;
         _record = record;
-        _statusMessage = 'SUCCESS: Image Authenticated!';
+        // _statusMessage already set
       });
 
     } catch (e) {
@@ -162,6 +214,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
     // Success Card
     final date = DateTime.fromMillisecondsSinceEpoch(_record!.timestamp.toInt());
     final fmtDate = DateFormat.yMMMd().add_jm().format(date);
+    // Safer substring logic with string interpolation
+    final hashPreview = (_record!.imageHash.length > 10) 
+        ? '${_record!.imageHash.substring(0, 10)}...' 
+        : _record!.imageHash;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -178,13 +234,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
           const Center(
             child: Text(
               'AUTHENTIC IMAGE',
-              style: TextStyle(color: Colors.teal, fontWeight: FontWeight.900, fontSize: 22, letterSpacing: 1),
+              style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: 1),
             ),
           ),
           const Divider(height: 30),
           _infoRow('Creator', _record!.ownerEmail),
           _infoRow('Created', fmtDate),
-          _infoRow('Registry ID', _record!.imageHash.substring(0, 10) + '...'),
+          _infoRow('Registry ID', hashPreview),
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {}, 
@@ -222,26 +278,30 @@ class _VerificationScreenState extends State<VerificationScreen> {
         child: Column(
           children: [
              InkWell(
-               onTap: _scanning ? null : _pickImage,
+               onTap: _scanning ? null : (kSafeModeWindows ? _enterPathManually : _pickImage),
                child: Container(
                  height: 200,
                  width: double.infinity,
                  decoration: BoxDecoration(
-                   color: Colors.grey.shade200,
+                   color: kSafeModeWindows ? Colors.amber.shade50 : Colors.grey.shade200,
                    borderRadius: BorderRadius.circular(16),
-                   border: Border.all(color: Colors.grey.shade400),
+                   border: Border.all(color: kSafeModeWindows ? Colors.amber : Colors.grey.shade400),
                  ),
                  child: _imageFile != null
                      ? ClipRRect(
                          borderRadius: BorderRadius.circular(16),
                          child: Image.file(_imageFile!, fit: BoxFit.cover),
                        )
-                     : const Column(
+                     : Column(
                          mainAxisAlignment: MainAxisAlignment.center,
                          children: [
-                           Icon(Icons.qr_code_scanner, size: 50, color: Colors.indigo),
-                           SizedBox(height: 10),
-                           Text('Tap to Scan Image'),
+                           Icon(kSafeModeWindows ? Icons.folder_open : Icons.qr_code_scanner, 
+                                size: 50, 
+                                color: kSafeModeWindows ? Colors.amber.shade800 : Colors.indigo),
+                           const SizedBox(height: 10),
+                           Text(kSafeModeWindows 
+                                ? 'Tap to Select Image (Safe Mode)' 
+                                : 'Tap to Scan Image'),
                          ],
                        ),
                ),
@@ -253,7 +313,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 Text(_statusMessage),
              ] else ...[
                 _buildResultCard(),
-             ]
+             ],
+             const SizedBox(height: 20),
+             TextButton(
+               onPressed: _enterPathManually,
+               child: const Text('Enter Path Manually (Debug)'),
+             )
           ],
         ),
       ),
