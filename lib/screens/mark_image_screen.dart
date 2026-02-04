@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/image_service.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/steg_service.dart';
@@ -229,8 +230,19 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
             ],
           ),
         );
+      } else if (Platform.isAndroid || Platform.isIOS) {
+         // Mobile: Save to External Storage (Android) or Documents (iOS)
+         final directory = Platform.isAndroid 
+             ? await getExternalStorageDirectory() // /storage/emulated/0/Android/data/.../files
+             : await getApplicationDocumentsDirectory();
+         
+         if (directory == null) {
+            throw Exception("Could not access storage directory");
+         }
+         final fileName = 'TrueMark_Protected_${DateTime.now().millisecondsSinceEpoch}.png';
+         outputFilePath = '${directory.path}/$fileName';
       } else {
-         // Standard Mode: Use File Picker
+         // Desktop Standard: Use File Picker
          outputFilePath = await FilePicker.platform.saveFile(
           dialogTitle: 'Save Protected Image To...',
           fileName: 'TrueMark_Protected_${DateTime.now().millisecondsSinceEpoch}.png',
@@ -287,6 +299,11 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
           duration: const Duration(seconds: 4),
         )
       );
+
+      // Mobile: Open Share Sheet to allow saving to Gallery/Downloads
+      if (Platform.isAndroid || Platform.isIOS) {
+        await Share.shareXFiles([XFile(processedFile.path)], text: 'TrueMark Protected Image');
+      }
     } catch (e) {
       print(e);
       setState(() => _error = 'Protection failed: $e');

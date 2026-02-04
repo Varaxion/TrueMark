@@ -1,4 +1,5 @@
 // lib/services/image_service.dart
+import 'dart:io';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -55,6 +56,12 @@ class ImageService {
   /// Atomically increments the user's imageCount and returns the generated id "<baseNumber><newCount>".
   /// Uses a transaction to ensure atomicity.
   static Future<String> generateNextImageId({bool allowAnonymousFallback = false}) async {
+    // Prevent Windows C++ Crash
+    if (Platform.isWindows) {
+      final rnd = Random();
+      return '${100000 + rnd.nextInt(900000)}${rnd.nextInt(1000)}';
+    }
+
     final user = await ensureSignedIn(allowAnonymousFallback: allowAnonymousFallback);
     final docRef = _collection.doc(user.uid);
 

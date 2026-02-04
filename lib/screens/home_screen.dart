@@ -76,13 +76,9 @@ class HomeScreen extends StatelessWidget {
             
             // ACTION BUTTONS
             Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20, // Added spacing between columns
-                childAspectRatio: 1.5, // Taller cards for better info density
+              child: ListView(
                 children: [
-                  _DashboardCard(
+                   _DashboardCard(
                     icon: Icons.shield,
                     title: 'Protect Image',
                     subtitle: 'Embed invisible signature & register ownership',
@@ -91,6 +87,7 @@ class HomeScreen extends StatelessWidget {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const MarkImageScreen()));
                     },
                   ),
+                  const SizedBox(height: 16),
                   _DashboardCard(
                     icon: Icons.verified,
                     title: 'Verify Image',

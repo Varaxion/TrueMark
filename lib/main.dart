@@ -8,10 +8,82 @@ import 'screens/profile_setup_screen.dart';
 import 'screens/home_screen.dart';
 // import 'screens/secure_inbox_screen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const TrueMarkApp());
+  runApp(const AppInitializer());
+}
+
+class AppInitializer extends StatefulWidget {
+  const AppInitializer({super.key});
+
+  @override
+  State<AppInitializer> createState() => _AppInitializerState();
+}
+
+class _AppInitializerState extends State<AppInitializer> {
+  Future<void>? _initFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture = _initFirebase();
+  }
+
+  Future<void> _initFirebase() async {
+    if (Firebase.apps.isNotEmpty) {
+      return;
+    }
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch (e) {
+      // If the app is already initialized (e.g. from a previous Hot Restart), 
+      // we can safely ignore the 'duplicate-app' error and proceed.
+      if (e.toString().contains('duplicate-app')) {
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: FutureBuilder(
+        future: _initFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (snapshot.hasError) {
+            return Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error, color: Colors.red, size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Firebase Init Error:\n${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+          return const TrueMarkApp();
+        },
+      ),
+    );
+  }
 }
 
 class TrueMarkApp extends StatelessWidget {
