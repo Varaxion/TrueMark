@@ -54,30 +54,7 @@ TrueMark is built around three core pillars of digital security, each with a dis
 
 ---
 
-## 📦 How to Create a Release Build (Android)
 
-To generate a distributable APK for users to install:
-
-### 1. Prerequisites
-Ensure you have the `key.properties` file and a valid upload keystore configured in the `/android` directory.
-
-### 2. Generate Release APK
-Run the following command in your terminal:
-```bash
-flutter build apk --release
-```
-The resulting file will be located at:
-`build/app/outputs/flutter-apk/app-release.apk`
-
-### 3. Generate Android App Bundle (for Play Store)
-If you intend to upload to the Google Play Store, use:
-```bash
-flutter build appbundle --release
-```
-The file will be at:
-`build/app/outputs/bundle/release/app-release.aab`
-
----
 
 ## 🎨 Design Philosophy
 
