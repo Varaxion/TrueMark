@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'screens/signup_screen.dart';
+import 'screens/login_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'screens/home_screen.dart';
 // import 'screens/secure_inbox_screen.dart';
@@ -112,7 +113,7 @@ class AuthWrapper extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      return const SignupScreen();
+      return const LoginScreen();
     }
 
     try {

@@ -71,3 +71,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local Build trash folders (recovery)
+build_trash*/
+*_trash*/
+
+# verbose logs
+build_*.txt
