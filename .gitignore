@@ -26,7 +26,6 @@ migrate_working_dir/
 
 # Flutter/Dart/Pub related
 **/doc/api/
-**/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -35,7 +34,7 @@ migrate_working_dir/
 /build/
 .packages
 
-# Android
+# Android (Primary Platform)
 *.iml
 *.apk
 .gradle/
@@ -45,16 +44,14 @@ key.properties
 *.jks
 captures/
 
-# iOS
-ios/Pods/
-ios/.symlinks/
-ios/Flutter/App.framework
-ios/Flutter/Flutter.framework
-ios/Flutter/Generated.xcconfig
+# Windows (Primary Platform)
+windows/flutter/ephemeral/
 
-# macOS
-macos/Pods/
-macos/Flutter/ephemeral/
+# Unsupported Platforms (removed from project)
+ios/
+macos/
+linux/
+web/
 
 # Firebase & Environment Secrets
 google-services.json
@@ -76,5 +73,7 @@ app.*.map.json
 build_trash*/
 *_trash*/
 
-# verbose logs
+# Temporary build logs
 build_*.txt
+flutter_*.log
+outdated.txt
