@@ -13,9 +13,28 @@ class ProfileSetupScreen extends StatefulWidget {
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-
   bool _isLoading = false;
+
+  bool _isEditing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          _nameController.text = data['name'] ?? '';
+        });
+      }
+    }
+  }
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
@@ -25,9 +44,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User not logged in. Please sign in again.')),
-      );
       return;
     }
 
@@ -35,21 +51,24 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'email': user.email ?? '',
         'name': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      setState(() {
+         _isEditing = false; // Switch back to view mode after save
       });
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile saved successfully'), backgroundColor: Colors.green),
       );
+
+      // We don't need to navigate explicitly as the Stream on HomeScreen updates automatically,
+      // but if we were pushed here, we can pop. If we replaced, we might stay or go back.
+      // The requirement was "clicking on user icon gives further options to save the profile".
+      // Assuming we want to stay on the page to see the saved state (View Mode).
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save profile: ${e.toString()}'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text('Failed to save profile: $e')),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -64,7 +83,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         backgroundColor: Colors.indigo,
         elevation: 0,
         title: const Text(
-          'Setup Profile',
+          'Profile',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -75,7 +94,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
             child: Card(
-              elevation: 8,
+              elevation: 4,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               child: Padding(
@@ -87,7 +106,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        "Complete Your Profile",
+                        "User Profile",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -98,49 +117,46 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       const SizedBox(height: 30),
                       TextFormField(
                         controller: _nameController,
+                        enabled: _isEditing, // Controlled by state
                         decoration: const InputDecoration(
                           labelText: 'Full Name',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.person),
                         ),
-                        validator: (value) => value == null || value.isEmpty
-                            ? 'Enter name'
-                            : null,
-                      ),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        controller: _phoneController,
-                        decoration: const InputDecoration(
-                          labelText: 'Phone Number',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.phone),
-                        ),
-                        keyboardType: TextInputType.phone,
-                        validator: (value) => value == null || value.isEmpty
-                            ? 'Enter phone number'
-                            : null,
+                        validator: (value) => null,
                       ),
                       const SizedBox(height: 30),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _saveProfile,
-                          icon: const Icon(Icons.save),
-                          label: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text('Save Profile'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            textStyle: const TextStyle(fontSize: 16),
-                          ),
-                        ),
+                        child: _isEditing 
+                          ? ElevatedButton.icon(
+                              onPressed: _isLoading ? null : _saveProfile,
+                              icon: const Icon(Icons.save),
+                              label: _isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(color: Colors.white)
+                                    )
+                                  : const Text('Save'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                textStyle: const TextStyle(fontSize: 16),
+                              ),
+                            )
+                          : OutlinedButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  _isEditing = true;
+                                });
+                              },
+                              icon: const Icon(Icons.edit),
+                              label: const Text('Edit'),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                textStyle: const TextStyle(fontSize: 16),
+                              ),
+                            ),
                       ),
                     ],
                   ),

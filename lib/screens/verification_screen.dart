@@ -241,11 +241,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
           _infoRow('Creator', _record!.ownerEmail),
           _infoRow('Created', fmtDate),
           _infoRow('Registry ID', hashPreview),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {}, 
-            child: const Text('View Full Certificate'),
-          )
+
         ],
       ),
     );
@@ -295,17 +291,28 @@ class _VerificationScreenState extends State<VerificationScreen> {
                      : Column(
                          mainAxisAlignment: MainAxisAlignment.center,
                          children: [
-                           Icon(kSafeModeWindows ? Icons.folder_open : Icons.qr_code_scanner, 
+                           Icon(kSafeModeWindows ? Icons.folder_open : Icons.verified, 
                                 size: 50, 
-                                color: kSafeModeWindows ? Colors.amber.shade800 : Colors.indigo),
+                                color: kSafeModeWindows ? Colors.amber.shade800 : Colors.teal),
                            const SizedBox(height: 10),
                            Text(kSafeModeWindows 
                                 ? 'Tap to Select Image (Safe Mode)' 
-                                : 'Tap to Scan Image'),
+                                : 'Tap to Verify Image'),
                          ],
                        ),
                ),
              ),
+             const SizedBox(height: 16),
+             if (!_scanning && !_hasResult)
+               const Padding(
+                 padding: EdgeInsets.symmetric(horizontal: 16.0),
+                 child: Text(
+                   'Scan a suspicious image to reveal its hidden metadata. If it was protected with TrueMark, we will display the creator\'s identity and creation date.',
+                   textAlign: TextAlign.center,
+                   style: TextStyle(color: Colors.grey, height: 1.5, fontSize: 13),
+                 ),
+               ),
+
              const SizedBox(height: 30),
              if (_scanning) ...[
                 const CircularProgressIndicator(),
@@ -315,10 +322,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 _buildResultCard(),
              ],
              const SizedBox(height: 20),
-             TextButton(
-               onPressed: _enterPathManually,
-               child: const Text('Enter Path Manually (Debug)'),
-             )
+             if ((kSafeModeWindows && Platform.isWindows) || (!Platform.isAndroid && !Platform.isIOS)) ...[
+                // Desktop / Web Debug Option
+                TextButton(
+                  onPressed: _enterPathManually,
+                  child: const Text('Enter Path Manually (Debug)'),
+                )
+             ]
           ],
         ),
       ),

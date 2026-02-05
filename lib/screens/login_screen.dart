@@ -69,107 +69,129 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'TrueMark',
-                style: TextStyle(
-                  fontSize: 42,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.blueAccent,
-                  fontFamily: 'Roboto', 
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 32),
-              Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Welcome Back!',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.indigo, Colors.teal], 
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Card(
+              elevation: 12,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              color: Colors.white.withOpacity(0.95),
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // LOGO / BRANDING
+                    const Icon(Icons.shield, size: 60, color: Colors.indigo),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'TrueMark',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.indigo,
+                        letterSpacing: 1.2,
                       ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: const Icon(Icons.email),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Secure Your Digital Assets',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 48),
+
+                    // INPUTS
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: 'Email Address',
+                        prefixIcon: const Icon(Icons.email_outlined, color: Colors.indigo),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: const Icon(Icons.lock_outline, color: Colors.indigo),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      ),
+                    ),
+
+                    // FORGOT PASSWORD
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () async {
+                           final email = _emailController.text.trim();
+                           if (email.isEmpty) {
+                             showToast("Please enter your email first");
+                             return;
+                           }
+                           try {
+                             await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                             showToast("Password reset email sent", backgroundColor: Colors.green);
+                           } catch (e) {
+                             showToast("Error: $e");
+                           }
+                        },
+                        child: const Text('Forgot Password?', style: TextStyle(color: Colors.teal)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // LOGIN BUTTON
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : loginUser,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
                         ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text('LOGIN', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
                       ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () async {
-                            final email = _emailController.text.trim();
-                            if (email.isEmpty) {
-                              showToast("Please enter your email first");
-                              return;
-                            }
-                            try {
-                              await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-                              showToast(
-                                "Password reset email sent to $email",
-                                backgroundColor: Colors.green,
-                              );
-                            } catch (e) {
-                              showToast("Error: $e");
-                            }
+                    ),
+                    const SizedBox(height: 24),
+
+                    // SIGN UP LINK
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("Don't have an account? ", style: TextStyle(color: Colors.grey[600])),
+                        GestureDetector(
+                          onTap: () {
+                             Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupScreen()));
                           },
-                          child: const Text("Forgot Password?"),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : loginUser,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blueAccent,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          child: const Text(
+                            'Sign Up',
+                            style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
                           ),
-                          child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text("Login", style: TextStyle(fontSize: 16)),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SignupScreen()),
-                  );
-                },
-                child: const Text("Don't have an account? Sign Up"),
-              ),
-            ],
+            ),
           ),
         ),
       ),

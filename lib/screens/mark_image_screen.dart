@@ -211,16 +211,41 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
       // 3b. Prompt User to Save File
       String? outputFilePath;
       
-      if (kSafeModeWindows && Platform.isWindows) {
+      final originalNameWithExt = inFile.uri.pathSegments.last;
+      String originalName = originalNameWithExt;
+      if (originalName.contains('.')) {
+        originalName = originalName.split('.').first;
+      }
+      
+      // Sanitize filename for cross-platform safety
+      originalName = originalName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+
+      // Intelligent Naming: [Original]_tm[UserBaseRef]_[Timestamp].png
+      // Example: celestial_tm102030_1739812312.png
+      final baseRef = _baseNumber ?? 'anon';
+      final fileName = '${originalName}_tm${baseRef}_$timestamp.png';
+
+       if (kSafeModeWindows && Platform.isWindows) {
         // Safe Mode: Manual Entry for Output Path
-        final controller = TextEditingController();
+        final controller = TextEditingController(text: fileName);
         outputFilePath = await showDialog<String>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Save To Path (Safe Mode)'),
-            content: TextField(
-              controller: controller,
-              decoration: const InputDecoration(hintText: 'C:\\Users\\...\\protected.png'),
+            title: const Text('Save Protected Image'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Enter full destination path or filename:'),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    hintText: 'C:\\Users\\...\\image.png',
+                    labelText: 'File Name / Path',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
             ),
             actions: [
               ElevatedButton(
@@ -239,13 +264,12 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
          if (directory == null) {
             throw Exception("Could not access storage directory");
          }
-         final fileName = 'TrueMark_Protected_${DateTime.now().millisecondsSinceEpoch}.png';
          outputFilePath = '${directory.path}/$fileName';
       } else {
          // Desktop Standard: Use File Picker
          outputFilePath = await FilePicker.platform.saveFile(
           dialogTitle: 'Save Protected Image To...',
-          fileName: 'TrueMark_Protected_${DateTime.now().millisecondsSinceEpoch}.png',
+          fileName: fileName,
         );
       }
 
@@ -300,10 +324,7 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
         )
       );
 
-      // Mobile: Open Share Sheet to allow saving to Gallery/Downloads
-      if (Platform.isAndroid || Platform.isIOS) {
-        await Share.shareXFiles([XFile(processedFile.path)], text: 'TrueMark Protected Image');
-      }
+      // Auto-Share removed. User must click "Share / Save Copy" button.
     } catch (e) {
       print(e);
       setState(() => _error = 'Protection failed: $e');
@@ -328,7 +349,7 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
             ? const Center(child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                   Icon(Icons.shield_outlined, size: 48, color: Colors.indigo),
+                   Icon(Icons.shield, size: 60, color: Colors.indigo),
                    SizedBox(height: 10),
                    Text('Tap to Protect Image', style: TextStyle(fontSize: 16)),
                 ],
@@ -350,39 +371,33 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
         child: Column(
           children: [
             if (kSafeModeWindows && Platform.isWindows) ...[
-               // SAFE MODE UI: Manual Path Only
-               const Card(
-                 color: Colors.amberAccent,
-                 child: Padding(
-                   padding: EdgeInsets.all(8.0),
-                   child: Text('⚠️ WINDOWS SAFE MODE ACTIVE\nUsing Manual Paths to bypass crash.'),
+                // SAFE MODE UI: Manual Path Only
+                if (!Platform.isAndroid && !Platform.isIOS) ...[
+                 const Card(
+                   color: Colors.amberAccent,
+                   child: Padding(
+                     padding: EdgeInsets.all(8.0),
+                     child: Text('⚠️ WINDOWS SAFE MODE ACTIVE\nUsing Manual Paths to bypass crash.'),
+                   ),
                  ),
-               ),
-               const SizedBox(height: 10),
-               ElevatedButton.icon(
-                 onPressed: _enterPathManually,
-                 icon: const Icon(Icons.folder_open),
-                 label: const Text('Select Source Image (Manual Path)'),
-               ),
+                 const SizedBox(height: 10),
+                 ElevatedButton.icon(
+                   onPressed: _enterPathManually,
+                   icon: const Icon(Icons.folder_open),
+                   label: const Text('Select Source Image (Manual Path)'),
+                 ),
+                ]
             ] else ...[
                 // STANDARD UI
                 _buildUploaderCard(),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _pickFromGallery,
-                      icon: const Icon(Icons.image),
-                      label: const Text('Gallery'),
-                    ),
-                    if (!Platform.isWindows) 
-                      ElevatedButton.icon(
-                        onPressed: _pickFromCamera,
-                        icon: const Icon(Icons.camera_alt),
-                        label: const Text('Camera'),
-                      ),
-                  ],
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    'Select an image from your gallery. TrueMark will embed an invisible, encrypted signature linked to your identity, creating a permanent proof of ownership.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey, height: 1.5, fontSize: 13),
+                  ),
                 ),
             ],
 
@@ -421,7 +436,25 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
                      Expanded(child: Text('Success!\nSaved to: $_processedLocalPath'))
                    ]),
                  ),
-               )
+               ),
+               const SizedBox(height: 16),
+               SizedBox(
+                 width: double.infinity,
+                 height: 50,
+                 child: ElevatedButton.icon(
+                   onPressed: () {
+                     if (_processedLocalPath != null) {
+                       Share.shareXFiles([XFile(_processedLocalPath!)], text: 'TrueMark Protected Image');
+                     }
+                   },
+                   icon: const Icon(Icons.share),
+                   label: const Text('SHARE / SAVE COPY'),
+                   style: ElevatedButton.styleFrom(
+                     backgroundColor: Colors.teal,
+                     foregroundColor: Colors.white,
+                   ),
+                 ),
+               ),
             ],
             if (_error != null)
               Padding(

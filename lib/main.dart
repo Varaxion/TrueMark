@@ -124,7 +124,7 @@ class AuthWrapper extends StatelessWidget {
           .get();
 
       final data = doc.data();
-      if (data == null || data['name'] == null || data['phone'] == null) {
+      if (data == null || data['name'] == null) {
         return ProfileSetupScreen();
       }
 
