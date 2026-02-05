@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'mark_image_screen.dart';
-import 'verification_screen.dart';
+import 'true_sign_screen.dart';
 import 'profile_setup_screen.dart';
 import 'signup_screen.dart';
+import 'about_screen.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'true_lock_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -47,13 +48,13 @@ class HomeScreen extends StatelessWidget {
                 UserAccountsDrawerHeader(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.indigo, Colors.teal],
+                      colors: [Color(0xFF5E35B1), Color(0xFF7E57C2)], // Bluish-Purple - unified menu theme
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                   ),
                   accountName: Text(fullDisplayText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  accountEmail: const SizedBox.shrink(),
+                  accountEmail: Text(user?.email ?? '', style: const TextStyle(fontSize: 13)),
                   currentAccountPicture: GestureDetector(
                     onTap: () {
                        Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
@@ -70,6 +71,15 @@ class HomeScreen extends StatelessWidget {
                   onTap: () {
                      Navigator.pop(context);
                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text('About'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen()));
                   },
                 ),
                 const Divider(),
@@ -102,7 +112,7 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 10),
                     Text(
-                      'Secure Your Digital Assets',
+                      'Securing Digital Truth in a Synthetic World',
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -111,33 +121,56 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Embed invisible proofs of ownership into your images or verify suspicious files.',
+                      'Protect your images with digital signatures or encrypt sensitive files with military-grade security.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white70),
                     ),
                     const SizedBox(height: 40),
                     
+                  // ACTION GROUPS
                     Expanded(
                       child: ListView(
                         children: [
-                           _DashboardCard(
-                            icon: Icons.shield,
-                            title: 'Protect Image',
-                            subtitle: 'Embed invisible signature & register ownership',
+                          // GROUP 1: INTEGRITY
+                          _DashboardGroupCard(
+                            title: 'TrueSign',
+                            subtitle: 'Digital Signature & Tamper Detection',
+                            icon: Icons.verified_user,
                             color: Colors.indigo,
-                            onTap: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const MarkImageScreen()));
-                            },
+                            children: [
+                              _ActionTile(
+                                icon: Icons.shield,
+                                title: 'Protect Image',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueSignScreen(isProtectMode: true))),
+                              ),
+                              _ActionTile(
+                                icon: Icons.verified,
+                                title: 'Verify Image',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueSignScreen(isProtectMode: false))),
+                              ),
+                            ],
                           ),
+
                           const SizedBox(height: 16),
-                          _DashboardCard(
-                            icon: Icons.verified,
-                            title: 'Verify Image',
-                            subtitle: 'Scan an image to reveal its creator',
-                            color: Colors.teal,
-                            onTap: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen()));
-                            },
+
+                          // GROUP 2: PRIVACY
+                          _DashboardGroupCard(
+                            title: 'TrueLock',
+                            subtitle: 'Military-Grade File Encryption',
+                            icon: Icons.lock,
+                            color: const Color(0xFF00897B), // Emerald Green to match TrueLock screen
+                            children: [
+                              _ActionTile(
+                                icon: Icons.lock_outline,
+                                title: 'Encrypt File',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueLockScreen(isEncryptMode: true))),
+                              ),
+                              _ActionTile(
+                                icon: Icons.lock_open,
+                                title: 'Decrypt File',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueLockScreen(isEncryptMode: false))),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -153,68 +186,63 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _DashboardCard extends StatelessWidget {
-  final IconData icon;
+class _DashboardGroupCard extends StatelessWidget {
   final String title;
   final String subtitle;
+  final IconData icon;
   final Color color;
-  final VoidCallback onTap;
+  final List<Widget> children;
 
-  const _DashboardCard({
-    required this.icon,
+  const _DashboardGroupCard({
     required this.title,
     required this.subtitle,
+    required this.icon,
     required this.color,
-    required this.onTap,
+    required this.children,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
       elevation: 4,
+      color: Colors.white.withOpacity(0.95),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 40, color: color),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios, color: Colors.grey[300]),
-            ],
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 32, color: color),
           ),
+          title: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          childrenPadding: const EdgeInsets.only(bottom: 16),
+          children: children,
         ),
       ),
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _ActionTile({required this.icon, required this.title, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.grey[700]),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
     );
   }
 }
