@@ -109,7 +109,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF5E35B1), Color(0xFF7E57C2)], // Bluish-Purple - unified menu theme
+            colors: [Color(0xFF4527A0), Color(0xFF5E35B1)], // Darker Bluish-Purple
           ),
         ),
         child: SafeArea(

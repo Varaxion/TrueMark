@@ -4,6 +4,7 @@ import 'true_sign_screen.dart';
 import 'profile_setup_screen.dart';
 import 'signup_screen.dart';
 import 'about_screen.dart';
+import 'true_hide_screen.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'true_lock_screen.dart';
@@ -48,7 +49,7 @@ class HomeScreen extends StatelessWidget {
                 UserAccountsDrawerHeader(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF5E35B1), Color(0xFF7E57C2)], // Bluish-Purple - unified menu theme
+                      colors: [Color(0xFF4527A0), Color(0xFF5E35B1)], // Darker Bluish-Purple
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -169,6 +170,28 @@ class HomeScreen extends StatelessWidget {
                                 icon: Icons.lock_open,
                                 title: 'Decrypt File',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueLockScreen(isEncryptMode: false))),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // GROUP 3: STEGANOGRAPHY
+                          _DashboardGroupCard(
+                            title: 'TrueHide',
+                            subtitle: 'Steganographic Image Concealment',
+                            icon: Icons.visibility_off,
+                            color: const Color(0xFF9C27B0), // Purple for mystery/concealment
+                            children: [
+                              _ActionTile(
+                                icon: Icons.hide_image,
+                                title: 'Hide Message',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueHideScreen())),
+                              ),
+                              _ActionTile(
+                                icon: Icons.image_search,
+                                title: 'Reveal Message',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueHideScreen())),
                               ),
                             ],
                           ),

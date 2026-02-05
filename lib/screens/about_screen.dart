@@ -11,7 +11,7 @@ class AboutScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF5E35B1), Color(0xFF7E57C2)], // Bluish-Purple - unified menu theme
+            colors: [Color(0xFF4527A0), Color(0xFF5E35B1)], // Darker Bluish-Purple
           ),
         ),
         child: SafeArea(
@@ -181,6 +181,14 @@ class AboutScreen extends StatelessWidget {
                               title: "TrueLock",
                               subtitle: "Military-Grade File Encryption",
                               description: "Protect sensitive files with AES-256-GCM encryption. Only you can decrypt them with your password. Perfect for securing confidential images before sharing.",
+                            ),
+                            const SizedBox(height: 20),
+                            _buildFeatureItem(
+                              icon: Icons.visibility_off,
+                              color: Colors.white,
+                              title: "TrueHide",
+                              subtitle: "Steganographic Image Concealment (Coming Soon)",
+                              description: "Hide encrypted images inside innocent-looking cover images. Dual-layer security combining encryption and steganography for covert communication.",
                             ),
                           ],
                         ),
