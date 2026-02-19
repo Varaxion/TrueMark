@@ -24,10 +24,22 @@ class HomeScreen extends StatelessWidget {
         String nameFromDb = 'User';
         String email = user.email ?? '';
         
-        if (snapshot.hasData && snapshot.data!.exists) {
-           final data = snapshot.data!.data() as Map<String, dynamic>;
-           nameFromDb = data['name'] ?? '';
-           if (nameFromDb.trim().isEmpty) nameFromDb = 'User';
+        if (snapshot.connectionState == ConnectionState.waiting) {
+           nameFromDb = 'Loading...';
+        } else if (snapshot.hasData && snapshot.data!.exists) {
+           final data = snapshot.data!.data() as Map<String, dynamic>?; // Nullable cast
+           if (data != null) {
+              nameFromDb = data['name'] ?? '';
+           }
+        }
+        
+        // Final fallback: derive from email if name is still empty/User
+        if (nameFromDb.trim().isEmpty || nameFromDb == 'User') {
+            if (email.isNotEmpty) {
+               nameFromDb = email.split('@')[0]; // simple fallback
+            } else {
+               nameFromDb = 'TrueMark User';
+            }
         }
 
         final fullDisplayText = '$nameFromDb ($email)';
@@ -54,15 +66,35 @@ class HomeScreen extends StatelessWidget {
                       end: Alignment.bottomRight,
                     ),
                   ),
-                  accountName: Text(fullDisplayText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  accountEmail: Text(user?.email ?? '', style: const TextStyle(fontSize: 13)),
+                  accountName: Text(
+                    nameFromDb, 
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 18,
+                      letterSpacing: 0.5,
+                      color: Colors.white,
+                    )
+                  ),
+                  accountEmail: Text(
+                    user?.email ?? '', 
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.9),
+                    )
+                  ),
                   currentAccountPicture: GestureDetector(
                     onTap: () {
                        Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
                     },
-                    child: const CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.person, size: 40, color: Colors.indigo),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const CircleAvatar(
+                        backgroundColor: Colors.white,
+                        child: Icon(Icons.person, size: 40, color: Colors.indigo),
+                      ),
                     ),
                   ),
                 ),
