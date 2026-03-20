@@ -261,18 +261,18 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
     String title = "TrueVault Locked";
     String subtitle = "Enter your 6-Digit PIN to access your secure storage.";
     String buttonText = "UNLOCK VAULT";
-    IconData icon = Icons.security;
+    IconData icon = Icons.lock_person_rounded;
 
     if (_vaultState == VaultState.setupPin) {
       title = "Setup TrueVault";
       subtitle = "Create a powerful 6-Digit PIN. This PIN is securely tied strictly to your account login via Secure Storage.";
       buttonText = "SET NEW PIN";
-      icon = Icons.lock_person;
+      icon = Icons.lock_person_rounded;
     } else if (_vaultState == VaultState.confirmPin) {
       title = "Confirm PIN";
       subtitle = "Re-enter your 6-Digit PIN to verify.";
       buttonText = "CONFIRM PIN";
-      icon = Icons.domain_verification;
+      icon = Icons.domain_verification_rounded;
     }
 
     return Expanded(
@@ -558,22 +558,22 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
                          physics: const AlwaysScrollableScrollPhysics(),
                          child: SizedBox(
                            height: MediaQuery.of(context).size.height * 0.6,
-                           child: const Center(
+                           child: Center(
                              child: Column(
                                mainAxisAlignment: MainAxisAlignment.center,
                                children: [
                                  Container(
-                                   padding: EdgeInsets.all(20),
+                                   padding: const EdgeInsets.all(20),
                                    decoration: BoxDecoration(
                                      color: Colors.white.withOpacity(0.1),
                                      shape: BoxShape.circle,
                                    ),
-                                   child: Icon(Icons.lock_person_rounded, color: Colors.white, size: 64),
+                                   child: const Icon(Icons.lock_person_rounded, color: Colors.white, size: 64),
                                  ),
-                                 SizedBox(height: 16),
-                                 Text("Your TrueVault is empty.", style: TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold)),
-                                 SizedBox(height: 8),
-                                 Padding(
+                                 const SizedBox(height: 16),
+                                 const Text("Your TrueVault is empty.", style: TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold)),
+                                 const SizedBox(height: 8),
+                                 const Padding(
                                    padding: EdgeInsets.symmetric(horizontal: 40.0),
                                    child: Text("Import raw images directly here, or save files strictly to your vault after processing them.", style: TextStyle(color: Colors.white54, fontSize: 13), textAlign: TextAlign.center),
                                  ),
