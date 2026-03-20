@@ -16,6 +16,9 @@ import '../services/firestore_service.dart';
 import '../models/ownership_record.dart';
 import '../utils/constants.dart';
 import '../utils/admin_config.dart';
+import 'package:oktoast/oktoast.dart';
+import 'package:path/path.dart' as p;
+import 'true_vault_screen.dart';
 
 class TrueSignScreen extends StatefulWidget {
   final bool isProtectMode; // true = Protect tab, false = Verify tab
@@ -86,6 +89,41 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
         _protectSuccess = false;
         _protectedFilePath = null;
       });
+    }
+  }
+
+  Future<void> _pickImageToProtectFromVault() async {
+    final File? file = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)),
+    );
+
+    if (file != null) {
+      setState(() {
+        _fileToProtect = file;
+        _protectSuccess = false;
+        _protectedFilePath = null;
+      });
+    }
+  }
+
+  Future<void> _saveToVault(String path) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        showToast("Error: Account not logged in.", backgroundColor: Colors.red);
+        return;
+      }
+      final root = await getApplicationDocumentsDirectory();
+      final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
+      if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
+      
+      final fileToSave = File(path);
+      final newPath = '${vaultDir.path}/${p.basename(fileToSave.path)}';
+      await fileToSave.copy(newPath);
+      showToast("File securely preserved in TrueVault!", position: ToastPosition.bottom, backgroundColor: Colors.green);
+    } catch (e) {
+      showToast("Error saving to vault", backgroundColor: Colors.red);
     }
   }
 
@@ -184,6 +222,22 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
     if (result != null && result.files.single.path != null) {
       setState(() {
         _fileToVerify = File(result.files.single.path!);
+        _hasVerifyResult = false;
+        _verifyMessage = '';
+      });
+      _performVerification();
+    }
+  }
+
+  Future<void> _pickImageToVerifyFromVault() async {
+    final File? file = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)),
+    );
+
+    if (file != null) {
+      setState(() {
+        _fileToVerify = file;
         _hasVerifyResult = false;
         _verifyMessage = '';
       });
@@ -331,8 +385,8 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
                     unselectedLabelColor: Colors.white60,
                     dividerColor: Colors.transparent,
                     tabs: const [
-                      Tab(text: "PROTECT", icon: Icon(Icons.shield)),
-                      Tab(text: "VERIFY", icon: Icon(Icons.verified)),
+                      Tab(text: "PROTECT", icon: Icon(Icons.shield_rounded)),
+                      Tab(text: "VERIFY", icon: Icon(Icons.verified_rounded)),
                     ],
                   ),
                 ),
@@ -364,7 +418,7 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Feature Header
-          const Icon(Icons.shield, size: 80, color: Colors.white),
+          const Icon(Icons.verified_user_rounded, size: 80, color: Colors.white),
           const SizedBox(height: 16),
           const Text(
             "Protect Your Image",
@@ -394,7 +448,7 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add_photo_alternate, size: 60, color: Colors.white70),
+                          Icon(Icons.add_photo_alternate_rounded, size: 60, color: Colors.white70),
                           SizedBox(height: 10),
                           Text('Tap to Select Image', style: TextStyle(color: Colors.white70, fontSize: 16)),
                         ],
@@ -407,6 +461,21 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
             ),
           ),
 
+          if (_fileToProtect == null) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _protecting ? null : _pickImageToProtectFromVault,
+              icon: const Icon(Icons.lock_person_rounded, size: 20),
+              label: const Text("LOAD FROM TRUEVAULT", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white54, width: 2),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 24),
 
           // Protect Button (Always Visible)
@@ -416,7 +485,7 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
               onPressed: (_fileToProtect == null || _protecting) ? null : _performProtection,
               icon: _protecting
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.shield),
+                  : const Icon(Icons.shield_rounded),
               label: Text(_protecting ? 'PROTECTING...' : 'APPLY PROTECTION'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.indigo,
@@ -457,8 +526,32 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
                         }
                       },
                       icon: const Icon(Icons.share),
-                      label: const Text("SHARE / SAVE"),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                      label: const Text("SHARE / SAVE", style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white, 
+                        foregroundColor: Colors.indigo,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        if (_protectedFilePath != null) {
+                          _saveToVault(_protectedFilePath!);
+                        }
+                      },
+                      icon: const Icon(Icons.security),
+                      label: const Text("STORE SECURELY IN VAULT", style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo.shade800,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
                   ),
                 ],
@@ -519,6 +612,21 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
                     ),
             ),
           ),
+
+          if (_fileToVerify == null) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _verifying ? null : _pickImageToVerifyFromVault,
+              icon: const Icon(Icons.security, size: 20),
+              label: const Text("LOAD FROM TRUEVAULT", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white54, width: 2),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
 
           const SizedBox(height: 24),
 

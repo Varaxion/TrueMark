@@ -8,6 +8,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'true_vault_screen.dart';
 
 class TrueHideScreen extends StatefulWidget {
   const TrueHideScreen({super.key});
@@ -87,6 +89,65 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
         _revealedText = null;
         _revealedImage = null;
       });
+    }
+  }
+
+  Future<void> _pickCoverImageFromVault() async {
+    final File? file = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)),
+    );
+    if (file != null) {
+      setState(() {
+        _coverImage = file;
+        _outputImage = null;
+      });
+    }
+  }
+
+  Future<void> _pickSecretImageFromVault() async {
+    final File? file = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)),
+    );
+    if (file != null) {
+      setState(() {
+        _secretImage = file;
+      });
+    }
+  }
+
+  Future<void> _pickStegoImageFromVault() async {
+    final File? file = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)),
+    );
+    if (file != null) {
+      setState(() {
+        _stegoImage = file;
+        _revealedText = null;
+        _revealedImage = null;
+      });
+    }
+  }
+
+  Future<void> _saveToVault(String absolutePath) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        showToast("Error: Account not logged in.", backgroundColor: Colors.red);
+        return;
+      }
+      final root = await getApplicationDocumentsDirectory();
+      final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
+      if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
+      
+      final file = File(absolutePath);
+      final newPath = '${vaultDir.path}/${p.basename(file.path)}';
+      await file.copy(newPath);
+      showToast("File secured in TrueVault!", position: ToastPosition.bottom, backgroundColor: Colors.green);
+    } catch (e) {
+      showToast("Error saving to vault", backgroundColor: Colors.red);
     }
   }
 
@@ -242,7 +303,7 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.visibility_off, size: 18),
+                            Icon(Icons.visibility_off_rounded, size: 18),
                             SizedBox(width: 8),
                             Text("HIDE"),
                           ],
@@ -252,7 +313,7 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
                          child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.remove_red_eye, size: 18),
+                            Icon(Icons.image_search_rounded, size: 18),
                             SizedBox(width: 8),
                             Text("REVEAL"),
                           ],
@@ -357,6 +418,19 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
                         ),
                   ),
                 ),
+                if (_coverImage == null) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _pickCoverImageFromVault,
+                    icon: const Icon(Icons.lock_person_rounded, size: 18),
+                    label: const Text("LOAD FROM TRUEVAULT", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white30),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -420,37 +494,51 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
                       ),
                     ),
                   )
-                else
+                else ...[
                   GestureDetector(
-                  onTap: _pickSecretImage,
-                  child: Container(
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.black12,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white24, style: BorderStyle.solid),
-                      image: _secretImage != null 
-                        ? DecorationImage(image: FileImage(_secretImage!), fit: BoxFit.cover, opacity: 0.8)
-                        : null,
-                    ),
-                    child: _secretImage == null 
-                      ? const Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.add_photo_alternate_outlined, color: Colors.white54),
-                              SizedBox(height: 4),
-                              Text("Select secret image", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                            ],
+                    onTap: _pickSecretImage,
+                    child: Container(
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.black12,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white24, style: BorderStyle.solid),
+                        image: _secretImage != null 
+                          ? DecorationImage(image: FileImage(_secretImage!), fit: BoxFit.cover, opacity: 0.8)
+                          : null,
+                      ),
+                      child: _secretImage == null 
+                        ? const Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add_photo_alternate_outlined, color: Colors.white54),
+                                SizedBox(height: 4),
+                                Text("Select secret image", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                              ],
+                            ),
+                          )
+                        : Container(
+                            alignment: Alignment.center,
+                            color: Colors.black45,
+                            child: const Text("SECRET LOADED", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                           ),
-                        )
-                      : Container( // No setState here needed as _pickSecretImage calls it
-                          alignment: Alignment.center,
-                          color: Colors.black45,
-                          child: const Text("SECRET LOADED", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                        ),
+                    ),
                   ),
-                ),
+                  if (_secretImage == null) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _pickSecretImageFromVault,
+                      icon: const Icon(Icons.lock_person_rounded, size: 18),
+                      label: const Text("LOAD FROM TRUEVAULT", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white30),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
+                ],
               ],
             ),
           ),
@@ -585,6 +673,19 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
                       : null,
                   ),
                 ),
+                if (_stegoImage == null) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _pickStegoImageFromVault,
+                    icon: const Icon(Icons.lock_person_rounded, size: 18),
+                    label: const Text("SCAN FROM TRUEVAULT", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white30),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
             ],
           )),
 
@@ -685,6 +786,21 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
                           ),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _saveToVault(_revealedImage!.path),
+                          icon: const Icon(Icons.security),
+                          label: const Text("STORE SECURELY IN VAULT", style: TextStyle(fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal.shade800,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
                  ],
                ),
              ),
@@ -749,6 +865,25 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
                 backgroundColor: Colors.purpleAccent, 
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                 if (_outputImage != null) {
+                    _saveToVault(_outputImage!.path);
+                 }
+              },
+              icon: const Icon(Icons.security),
+              label: const Text("STORE SECURELY IN VAULT", style: TextStyle(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal.shade800,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),

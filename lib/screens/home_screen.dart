@@ -5,6 +5,8 @@ import 'profile_setup_screen.dart';
 import 'signup_screen.dart';
 import 'about_screen.dart';
 import 'true_hide_screen.dart';
+import 'true_meta_screen.dart';
+import 'true_vault_screen.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'true_lock_screen.dart';
@@ -168,16 +170,16 @@ class HomeScreen extends StatelessWidget {
                           _DashboardGroupCard(
                             title: 'TrueSign',
                             subtitle: 'Digital Signature & Tamper Detection',
-                            icon: Icons.verified_user,
-                            color: Colors.indigo,
+                            icon: Icons.verified_user_rounded,
+                            color: Colors.indigo.shade700,
                             children: [
                               _ActionTile(
-                                icon: Icons.shield,
+                                icon: Icons.shield_rounded,
                                 title: 'Protect Image',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueSignScreen(isProtectMode: true))),
                               ),
                               _ActionTile(
-                                icon: Icons.verified,
+                                icon: Icons.verified_rounded,
                                 title: 'Verify Image',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueSignScreen(isProtectMode: false))),
                               ),
@@ -190,16 +192,16 @@ class HomeScreen extends StatelessWidget {
                           _DashboardGroupCard(
                             title: 'TrueLock',
                             subtitle: 'Military-Grade File Encryption',
-                            icon: Icons.lock,
-                            color: const Color(0xFF00897B), // Emerald Green to match TrueLock screen
+                            icon: Icons.enhanced_encryption_rounded,
+                            color: Colors.teal.shade700,
                             children: [
                               _ActionTile(
-                                icon: Icons.lock_outline,
+                                icon: Icons.lock_rounded,
                                 title: 'Encrypt File',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueLockScreen(isEncryptMode: true))),
                               ),
                               _ActionTile(
-                                icon: Icons.lock_open,
+                                icon: Icons.lock_open_rounded,
                                 title: 'Decrypt File',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueLockScreen(isEncryptMode: false))),
                               ),
@@ -212,18 +214,52 @@ class HomeScreen extends StatelessWidget {
                           _DashboardGroupCard(
                             title: 'TrueHide',
                             subtitle: 'Steganographic Image Concealment',
-                            icon: Icons.visibility_off,
-                            color: const Color(0xFF9C27B0), // Purple for mystery/concealment
+                            icon: Icons.visibility_off_rounded,
+                            color: Colors.purple.shade600,
                             children: [
                               _ActionTile(
-                                icon: Icons.hide_image,
+                                icon: Icons.hide_image_rounded,
                                 title: 'Hide Message',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueHideScreen())),
                               ),
                               _ActionTile(
-                                icon: Icons.image_search,
+                                icon: Icons.image_search_rounded,
                                 title: 'Reveal Message',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueHideScreen())),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // GROUP 4: METADATA & PRIVACY
+                          _DashboardGroupCard(
+                            title: 'TrueMeta',
+                            subtitle: 'Metadata Stripper & Privacy Cleanser',
+                            icon: Icons.fingerprint_rounded,
+                            color: Colors.orange.shade800,
+                            children: [
+                              _ActionTile(
+                                icon: Icons.auto_fix_high_rounded,
+                                title: 'Strip Metadata',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueMetaScreen())),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // GROUP 5: SECURE STORAGE
+                          _DashboardGroupCard(
+                            title: 'TrueVault',
+                            subtitle: 'Secure Encrypted Local Gallery',
+                            icon: Icons.lock_person_rounded,
+                            color: Colors.red.shade900,
+                            children: [
+                              _ActionTile(
+                                icon: Icons.security_rounded,
+                                title: 'Open Secure Vault',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueVaultScreen())),
                               ),
                             ],
                           ),

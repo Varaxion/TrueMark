@@ -5,7 +5,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:path/path.dart' as p;
 import 'package:truemark/services/true_lock_service.dart';
+import 'true_vault_screen.dart';
 
 class TrueLockScreen extends StatefulWidget {
   final bool isEncryptMode; // Opens directly to Encrypt or Decrypt tab
@@ -90,6 +93,58 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
        }
     }
   }
+
+  Future<void> _pickFileToEncryptFromVault() async {
+    final File? file = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)),
+    );
+    if (file != null) {
+      setState(() {
+        _fileToEncrypt = file;
+        _encryptedResult = null; 
+      });
+    }
+  }
+
+  Future<void> _pickFileToDecryptFromVault() async {
+    final File? file = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: false)),
+    );
+    if (file != null) {
+      if (!file.path.toLowerCase().endsWith('.tmk')) {
+        showToast("Please pick a TrueLock (.tmk) archive file.", backgroundColor: Colors.red);
+        return;
+      }
+      setState(() {
+        _fileToDecrypt = file;
+        _decryptedResultFile = null; 
+        _isPreviewVisible = false;
+      });
+    }
+  }
+
+  Future<void> _saveToVault(String absolutePath) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        showToast("Error: Account not logged in.", backgroundColor: Colors.red);
+        return;
+      }
+      final root = await getApplicationDocumentsDirectory();
+      final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
+      if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
+      
+      final file = File(absolutePath);
+      final newPath = '${vaultDir.path}/${p.basename(file.path)}';
+      await file.copy(newPath);
+      showToast("File instantly protected inside TrueVault!", position: ToastPosition.bottom, backgroundColor: Colors.green);
+    } catch (e) {
+      showToast("Error saving to vault", backgroundColor: Colors.red);
+    }
+  }
+
 
   // --- PASSWORD STRENGTH LOGIC ---
   
@@ -274,8 +329,8 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
                     unselectedLabelColor: Colors.white60,
                     dividerColor: Colors.transparent,
                     tabs: const [
-                      Tab(text: "ENCRYPT", icon: Icon(Icons.lock_outline)),
-                      Tab(text: "DECRYPT", icon: Icon(Icons.lock_open_outlined)),
+                      Tab(text: "ENCRYPT", icon: Icon(Icons.lock_rounded)),
+                      Tab(text: "DECRYPT", icon: Icon(Icons.lock_open_rounded)),
                     ],
                   ),
                 ),
@@ -311,7 +366,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Feature Header
-          const Icon(Icons.lock, size: 80, color: Colors.white),
+          const Icon(Icons.enhanced_encryption_rounded, size: 80, color: Colors.white),
           const SizedBox(height: 16),
           const Text(
             "Encrypt Your Files",
@@ -330,7 +385,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
           _GlassCard(
             child: Column(
               children: [
-                const Icon(Icons.image, size: 50, color: Colors.white70),
+                const Icon(Icons.description_rounded, size: 50, color: Colors.white70),
                 const SizedBox(height: 10),
                 if (_fileToEncrypt != null)
                   Text(
@@ -341,10 +396,23 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
                 else
                   const Text("Select an image to encrypt", style: TextStyle(color: Colors.white70)),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _pickFileToEncrypt,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, foregroundColor: Colors.white),
-                  child: const Text("Pick Image"),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _pickFileToEncrypt,
+                      icon: const Icon(Icons.folder_open, size: 18),
+                      label: const Text("Device"),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, foregroundColor: Colors.white),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: _pickFileToEncryptFromVault,
+                      icon: const Icon(Icons.lock_person_rounded, size: 18),
+                      label: const Text("TrueVault"),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700, foregroundColor: Colors.white),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -459,7 +527,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Feature Header
-          const Icon(Icons.lock_open, size: 80, color: Colors.white),
+          const Icon(Icons.lock_open_rounded, size: 80, color: Colors.white),
           const SizedBox(height: 16),
           const Text(
             "Decrypt Your Files",
@@ -478,7 +546,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
           _GlassCard(
             child: Column(
               children: [
-                const Icon(Icons.file_present, size: 50, color: Colors.white70),
+                const Icon(Icons.description_rounded, size: 50, color: Colors.white70),
                 const SizedBox(height: 10),
                 if (_fileToDecrypt != null)
                   Text(
@@ -489,10 +557,23 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
                 else
                   const Text("Select a .tmk file to decrypt", style: TextStyle(color: Colors.white70)),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _pickFileToDecrypt,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, foregroundColor: Colors.white),
-                  child: const Text("Pick File"),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _pickFileToDecrypt,
+                      icon: const Icon(Icons.folder_open, size: 18),
+                      label: const Text("Device"),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, foregroundColor: Colors.white),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: _pickFileToDecryptFromVault,
+                      icon: const Icon(Icons.lock_person_rounded, size: 18),
+                      label: const Text("TrueVault"),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700, foregroundColor: Colors.white),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -547,7 +628,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
                     onPressed: () => setState(() => _isPreviewVisible = true),
                     icon: const Icon(Icons.image),
                     label: const Text("VIEW FILE"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.tealAccent),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.tealAccent, foregroundColor: Colors.black),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -556,10 +637,25 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
                     onPressed: () => _shareFile(_decryptedResultFile!),
                     icon: const Icon(Icons.save_alt),
                     label: const Text("SAVE / SHARE"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _saveToVault(_decryptedResultFile!.path),
+                icon: const Icon(Icons.security),
+                label: const Text("STORE SECURELY IN VAULT", style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal.shade800,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
             ),
             
             // PREVIEW AREA
