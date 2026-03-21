@@ -10,7 +10,10 @@ import 'package:exif/exif.dart';
 import 'package:image/image.dart' as img;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'true_vault_screen.dart';
+import '../widgets/vault_button.dart';
 
 class TrueMetaScreen extends StatefulWidget {
   const TrueMetaScreen({super.key});
@@ -191,14 +194,17 @@ class _TrueMetaScreenState extends State<TrueMetaScreen> {
   @override
   Widget build(BuildContext context) {
     bool hasExif = _exifData != null && _exifData!.isNotEmpty;
+    final isDark = context.watch<ThemeProvider>().isDark;
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFE65100), Color(0xFFFF8F00)], // Deep Amber/Orange gradient
+            colors: isDark
+                ? [const Color(0xFF000000), const Color(0xFF211300)]
+                : [const Color(0xFFE65100), const Color(0xFFFF8F00)],
           ),
         ),
         child: SafeArea(
@@ -226,8 +232,8 @@ class _TrueMetaScreenState extends State<TrueMetaScreen> {
               const Padding(
                  padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 10),
                  child: Text(
-                   "Review and strip sensitive digital footprints from your images before sharing them.",
-                   style: TextStyle(color: Colors.white, fontSize: 14),
+                   "Analyze and purge sensitive metadata footprints from your documents and media before sharing.",
+                   style: TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
                    textAlign: TextAlign.center,
                  ),
               ),
@@ -239,49 +245,98 @@ class _TrueMetaScreenState extends State<TrueMetaScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                       
-                       // Image Picker Area
-                       GestureDetector(
-                         onTap: _isScrubbing ? null : _pickImage,
-                         child: Container(
-                            height: 220,
-                            decoration: BoxDecoration(
-                              color: Colors.black26,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.white30, width: 2),
+                        
+                       // Mode Selector
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: _isScrubbing ? null : _pickImage,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Column(
+                                    children: [
+                                      Icon(Icons.perm_device_information_rounded, color: Colors.white70),
+                                      SizedBox(height: 4),
+                                      Text('From device', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
-                            child: _selectedImage == null
-                               ? const Center(
-                                   child: Column(
-                                     mainAxisAlignment: MainAxisAlignment.center,
-                                     children: [
-                                       Icon(Icons.fingerprint_rounded, size: 60, color: Colors.white70),
-                                       SizedBox(height: 10),
-                                       Text("Tap to Select Image", style: TextStyle(color: Colors.white70, fontSize: 16)),
-                                     ],
-                                   ),
-                                 )
-                               : ClipRRect(
-                                   borderRadius: BorderRadius.circular(14),
-                                   child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                                 ),
-                         ),
-                       ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: _isScrubbing ? null : _pickImageFromVault,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Column(
+                                    children: [
+                                      Icon(kTrueVaultIcon, color: Colors.white70),
+                                      SizedBox(height: 4),
+                                      Text('From TrueVault', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
-                       if (_selectedImage == null) ...[
-                         const SizedBox(height: 16),
-                         OutlinedButton.icon(
-                           onPressed: _isScrubbing ? null : _pickImageFromVault,
-                           icon: const Icon(Icons.lock_person_rounded, size: 18),
-                           label: const Text("LOAD FROM TRUEVAULT", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                           style: OutlinedButton.styleFrom(
-                             foregroundColor: Colors.white,
-                             side: const BorderSide(color: Colors.white54, width: 2),
-                             padding: const EdgeInsets.symmetric(vertical: 14),
-                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                           ),
-                         ),
-                       ],
+                      const SizedBox(height: 24),
+
+                       // Image Display Area
+                       Container(
+                          height: 220,
+                          decoration: BoxDecoration(
+                            color: Colors.black26,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white12),
+                          ),
+                          child: _selectedImage == null
+                             ? const Center(
+                                 child: Column(
+                                   mainAxisAlignment: MainAxisAlignment.center,
+                                   children: [
+                                     Icon(Icons.zoom_in_rounded, size: 60, color: Colors.white24),
+                                     SizedBox(height: 12),
+                                     Text("Select file to examine", style: TextStyle(color: Colors.white38)),
+                                   ],
+                                 ),
+                               )
+                             : ClipRRect(
+                                 borderRadius: BorderRadius.circular(14),
+                                 child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Image.file(_selectedImage!, fit: BoxFit.cover, width: double.infinity),
+                                    Container(color: Colors.black12),
+                                    Positioned(
+                                      top: 8, right: 8,
+                                      child: IconButton(
+                                        icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                                        onPressed: () => setState(() => _selectedImage = null),
+                                      ),
+                                    )
+                                  ],
+                                 ),
+                               ),
+                       ),
 
                        const SizedBox(height: 24),
 
@@ -475,20 +530,9 @@ class _TrueMetaScreenState extends State<TrueMetaScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton.icon(
-                                      onPressed: _saveToVault,
-                                      icon: const Icon(Icons.security),
-                                      label: const Text("STORE SECURELY IN VAULT", style: TextStyle(fontWeight: FontWeight.bold)),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.teal.shade800, 
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 14),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      ),
-                                    ),
-                                  ),
+                                  VaultSaveButton(
+                                     onPressed: _saveToVault,
+                                   ),
                                 ],
                               ),
                             ),

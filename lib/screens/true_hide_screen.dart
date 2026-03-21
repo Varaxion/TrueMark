@@ -9,10 +9,14 @@ import 'package:cross_file/cross_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'true_vault_screen.dart';
+import '../widgets/vault_button.dart';
 
 class TrueHideScreen extends StatefulWidget {
-  const TrueHideScreen({super.key});
+  final bool isHideMode;
+  const TrueHideScreen({super.key, required this.isHideMode});
 
   @override
   State<TrueHideScreen> createState() => _TrueHideScreenState();
@@ -48,7 +52,7 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.isHideMode ? 0 : 1);
   }
 
   @override
@@ -249,13 +253,16 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDark;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF4527A0), Color(0xFF7B1FA2)], // Deep Purple to Vivid Purple
+            colors: isDark
+                ? [const Color(0xFF000000), const Color(0xFF2D0A31)]
+                : [const Color(0xFF4527A0), const Color(0xFF7B1FA2)],
           ),
         ),
         child: SafeArea(
@@ -371,66 +378,109 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.image, color: Colors.white),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.image_rounded, color: Colors.white),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text("Cover Image", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    const Text("Cover Image", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    const Icon(Icons.info_outline_rounded, color: Colors.white38, size: 20),
                   ],
                 ),
                 const SizedBox(height: 16),
                 
-                GestureDetector(
-                  onTap: _pickCoverImage,
-                  child: Container(
-                    height: 150,
-                    decoration: BoxDecoration(
-                      color: Colors.black12,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white24, style: BorderStyle.solid),
-                      image: _coverImage != null 
-                        ? DecorationImage(image: FileImage(_coverImage!), fit: BoxFit.cover, opacity: 0.8)
-                        : null,
-                    ),
-                    child: _coverImage == null 
-                      ? const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add_photo_alternate, color: Colors.white54, size: 40),
-                            SizedBox(height: 8),
-                            Text("Tap to select cover image", style: TextStyle(color: Colors.white54)),
-                          ],
-                        )
-                      : Container(
-                          alignment: Alignment.topRight,
-                          padding: const EdgeInsets.all(8),
-                          child: const CircleAvatar(
-                            backgroundColor: Colors.green,
-                            radius: 12,
-                            child: Icon(Icons.check, size: 16, color: Colors.white),
+                // Professional Picker
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _isEmbedding ? null : _pickCoverImage,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.03),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Column(
+                              children: [
+                                Icon(Icons.stay_current_portrait_rounded, color: Colors.white60, size: 20),
+                                SizedBox(height: 2),
+                                Text('From device', style: TextStyle(color: Colors.white, fontSize: 11)),
+                              ],
+                            ),
                           ),
                         ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _isEmbedding ? null : _pickCoverImageFromVault,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.03),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Column(
+                              children: [
+                                Icon(kTrueVaultIcon, color: Colors.white60, size: 20),
+                                SizedBox(height: 2),
+                                Text('From TrueVault', style: TextStyle(color: Colors.white, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                if (_coverImage == null) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: _pickCoverImageFromVault,
-                    icon: const Icon(Icons.lock_person_rounded, size: 18),
-                    label: const Text("LOAD FROM TRUEVAULT", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white30),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                const SizedBox(height: 16),
+
+                Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white12),
+                    image: _coverImage != null 
+                      ? DecorationImage(image: FileImage(_coverImage!), fit: BoxFit.cover, opacity: 0.8)
+                      : null,
                   ),
-                ],
+                  child: _coverImage == null 
+                    ? const Center(child: Text("No cover selected", style: TextStyle(color: Colors.white24, fontSize: 12)))
+                    : Stack(
+                        children: [
+                           Container(
+                             alignment: Alignment.center,
+                             color: Colors.black45,
+                             child: const Text("Cover image ready", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                           ),
+                           Positioned(
+                             top: 4, right: 4,
+                             child: IconButton(
+                               icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                               onPressed: () => setState(() => _coverImage = null),
+                             ),
+                           )
+                        ],
+                      ),
+                ),
               ],
             ),
           ),
@@ -527,15 +577,8 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
                   ),
                   if (_secretImage == null) ...[
                     const SizedBox(height: 12),
-                    OutlinedButton.icon(
+                    VaultLoadButton(
                       onPressed: _pickSecretImageFromVault,
-                      icon: const Icon(Icons.lock_person_rounded, size: 18),
-                      label: const Text("LOAD FROM TRUEVAULT", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white30),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
                     ),
                   ],
                 ],
@@ -675,15 +718,9 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
                 ),
                 if (_stegoImage == null) ...[
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
+                  VaultLoadButton(
                     onPressed: _pickStegoImageFromVault,
-                    icon: const Icon(Icons.lock_person_rounded, size: 18),
-                    label: const Text("SCAN FROM TRUEVAULT", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white30),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                    label: 'SCAN FROM TRUEVAULT',
                   ),
                 ],
             ],
@@ -787,19 +824,8 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
                         ),
                       ),
                       const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _saveToVault(_revealedImage!.path),
-                          icon: const Icon(Icons.security),
-                          label: const Text("STORE SECURELY IN VAULT", style: TextStyle(fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal.shade800,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
+                      VaultSaveButton(
+                        onPressed: () => _saveToVault(_revealedImage!.path),
                       ),
                  ],
                ),
@@ -870,23 +896,8 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
             ),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                 if (_outputImage != null) {
-                    _saveToVault(_outputImage!.path);
-                 }
-              },
-              icon: const Icon(Icons.security),
-              label: const Text("STORE SECURELY IN VAULT", style: TextStyle(fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal.shade800,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
+          VaultSaveButton(
+            onPressed: _outputImage != null ? () => _saveToVault(_outputImage!.path) : null,
           ),
         ],
       ),

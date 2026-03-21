@@ -8,6 +8,9 @@ import 'package:cross_file/cross_file.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/vault_button.dart';
 
 enum VaultState { loading, setupPin, confirmPin, enterPin, unlocked }
 
@@ -98,19 +101,17 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
     if (_vaultState == VaultState.confirmPin) {
       if (inputPin == _setupFirstPin) {
         try {
-          // Save to secure storage
           await _secureStorage.write(key: '${_userId}_vault_pin', value: inputPin);
+          if (mounted) {
+            showToast("Vault PIN Securely Established!", backgroundColor: Colors.green);
+            _pinController.clear();
+            setState(() {
+              _vaultState = VaultState.unlocked;
+            });
+            await _loadVaultFiles();
+          }
         } catch (e) {
-          showToast("Storage Warning: $e", position: ToastPosition.bottom);
-        }
-
-        if (mounted) {
-          showToast("Vault PIN Successfully Set!", backgroundColor: Colors.green);
-          _pinController.clear();
-          setState(() {
-            _vaultState = VaultState.unlocked;
-          });
-          await _loadVaultFiles();
+          showToast("Storage Error: $e", backgroundColor: Colors.red);
         }
       } else {
         setState(() => _pinError = "PINs do not match. Try again.");
@@ -136,35 +137,42 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
             await _loadVaultFiles();
           }
         } else {
-          setState(() => _pinError = "Incorrect PIN. Access Denied.");
+          setState(() => _pinError = "Incorrect PIN. Access denied.");
           showToast("Incorrect PIN. Try again.", backgroundColor: Colors.red);
           _pinController.clear();
         }
       } catch (e) {
-        setState(() => _pinError = "Error reading secure PIN.");
+        setState(() => _pinError = "Secure storage access error.");
         showToast("Error reading secure PIN.", backgroundColor: Colors.red);
       }
     }
   }
 
-  void _changePin() async {
+  void _confirmResetPin() async {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF303030),
-        title: const Text("Change PIN", style: TextStyle(color: Colors.white)),
-        content: const Text("Are you sure you want to completely erase your current TrueVault PIN? You will be prompted to create a new one immediately.", style: TextStyle(color: Colors.white70)),
+        backgroundColor: const Color(0xFF1A1F2B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Reset vault access?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text(
+          "This will erase your current PIN. All your files will remain safe, but you'll be prompted to set a new PIN immediately.",
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text("Cancel", style: TextStyle(color: Colors.white60)),
+          ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              await _secureStorage.delete(key: '${_userId}_vault_pin');
+              // We DON'T delete yet. We transition to setup.
+              // If they back out from Setup, we remain in Unlocked.
               setState(() {
                 _vaultState = VaultState.setupPin;
-                _vaultFiles.clear();
+                _pinController.clear();
               });
-              showToast("PIN has been reset.");
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
             child: const Text("Reset PIN"),
@@ -195,8 +203,7 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
     try {
       final dir = await _getVaultDirectory();
       
-      // Explicitly construct brand new File objects from string paths to obliterate
-      // Dart's under-the-hood FileSystemEntity pointer bindings that fail to trigger state invalidations.
+      // Construct fresh File objects
       List<File> files = dir.listSync()
           .where((e) => e is File)
           .map((e) => File(e.path))
@@ -260,18 +267,18 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
   Widget _buildAuthScreen() {
     String title = "TrueVault Locked";
     String subtitle = "Enter your 6-Digit PIN to access your secure storage.";
-    String buttonText = "UNLOCK VAULT";
-    IconData icon = Icons.lock_person_rounded;
+    String buttonText = "Unlock Vault";
+    IconData icon = kTrueVaultIcon;
 
     if (_vaultState == VaultState.setupPin) {
       title = "Setup TrueVault";
-      subtitle = "Create a powerful 6-Digit PIN. This PIN is securely tied strictly to your account login via Secure Storage.";
-      buttonText = "SET NEW PIN";
-      icon = Icons.lock_person_rounded;
+      subtitle = "Create a powerful 6-Digit PIN securely tied to your account.";
+      buttonText = "Set New PIN";
+      icon = kTrueVaultIcon;
     } else if (_vaultState == VaultState.confirmPin) {
       title = "Confirm PIN";
       subtitle = "Re-enter your 6-Digit PIN to verify.";
-      buttonText = "CONFIRM PIN";
+      buttonText = "Confirm PIN";
       icon = Icons.domain_verification_rounded;
     }
 
@@ -337,8 +344,8 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
                    child: ElevatedButton(
                      onPressed: _submitPin,
                      style: ElevatedButton.styleFrom(
-                       backgroundColor: Colors.white,
-                       foregroundColor: const Color(0xFFD50000),
+                       backgroundColor: kVaultPrimary,
+                      foregroundColor: Colors.white,
                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                      ),
                      child: Text(buttonText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -409,7 +416,7 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
         children: [
           Icon(Icons.shield, color: Colors.greenAccent, size: size),
           const SizedBox(height: 4),
-          Text("TMK", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: fontSize, letterSpacing: 1.5)),
+          const Text("TMK", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.5)),
         ],
       );
     }
@@ -417,10 +424,10 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
     void _onFileTapped(File file, bool isImage) {
       if (widget.isPicker) {
         if (widget.pickImagesOnly && !isImage) {
-          showToast("Invalid Type: Please explicitly select an image file.", backgroundColor: Colors.red);
+          showToast("Invalid Type: Selection restricted to images.", backgroundColor: Colors.red);
           return;
         }
-        Navigator.pop(context, file); // Shoot the file back securely
+        Navigator.pop(context, file); 
       } else {
         _showFileOptions(file);
       }
@@ -446,7 +453,6 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
         ),
       );
     } else {
-      // List View UI
       return Card(
         color: Colors.black45,
         margin: const EdgeInsets.only(bottom: 8),
@@ -481,40 +487,40 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
             color: Colors.black26,
             child: Row(
               children: [
-                // Sort Dropdown
-                Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _sortMode,
-                      dropdownColor: Colors.black87,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      icon: const Padding(
-                        padding: EdgeInsets.only(left: 8.0),
-                        child: Icon(Icons.sort, color: Colors.white70),
-                      ),
-                      items: ['Date (Newest)', 'Date (Oldest)', 'Name (A-Z)', 'Size (Largest)']
-                          .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() => _sortMode = val);
-                          _loadVaultFiles();
-                        }
-                      },
+                // Sort Dropdown (Left)
+                DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _sortMode,
+                    dropdownColor: const Color(0xFF1C2529),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    icon: const Padding(
+                      padding: EdgeInsets.only(left: 8.0),
+                      child: Icon(Icons.sort, color: Colors.white70),
                     ),
+                    items: ['Date (Newest)', 'Date (Oldest)', 'Name (A-Z)', 'Size (Largest)']
+                        .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _sortMode = val);
+                        _loadVaultFiles();
+                      }
+                    },
                   ),
                 ),
-                // Toggle View (List vs Grid)
+                const Spacer(),
+                // Toggle View (Right)
                 IconButton(
-                  icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view, color: Colors.white),
+                  icon: Icon(_isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded, color: Colors.white),
+                  tooltip: _isGridView ? "List View" : "Grid View",
                   onPressed: () {
                     setState(() => _isGridView = !_isGridView);
                   },
                 ),
-                // Change PIN Settings
+                // Vault Settings (Reset PIN)
                 IconButton(
-                  icon: const Icon(Icons.manage_accounts, color: Colors.white70),
-                  onPressed: _changePin,
+                  icon: const Icon(Icons.settings_outlined, color: Colors.white70),
+                  onPressed: _confirmResetPin,
                   tooltip: "Vault Settings",
                 ),
               ],
@@ -531,16 +537,17 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
                   "${_vaultFiles.length} Secured Items",
                   style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
                 ),
-                ElevatedButton.icon(
-                  onPressed: _importFile,
-                  icon: const Icon(Icons.add_to_drive, size: 18),
-                  label: const Text("IMPORT"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                  ),
-                ),
+                 ElevatedButton.icon(
+                   onPressed: _importFile,
+                   icon: const Icon(Icons.add_box_rounded, size: 18),
+                   label: const Text("Import"),
+                   style: ElevatedButton.styleFrom(
+                     backgroundColor: kVaultPrimary.withOpacity(0.9),
+                     foregroundColor: Colors.white,
+                     elevation: 4,
+                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                   ),
+                 ),
               ],
             ),
           ),
@@ -568,7 +575,7 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
                                      color: Colors.white.withOpacity(0.1),
                                      shape: BoxShape.circle,
                                    ),
-                                   child: const Icon(Icons.lock_person_rounded, color: Colors.white, size: 64),
+                                   child: const Icon(kTrueVaultIcon, color: Colors.white, size: 64),
                                  ),
                                  const SizedBox(height: 16),
                                  const Text("Your TrueVault is empty.", style: TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold)),
@@ -609,13 +616,16 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDark;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFB71C1C), Color(0xFFD50000)], // Deep Crimson Theme
+            colors: isDark
+                ? [const Color(0xFF000000), const Color(0xFF1C2529)]
+                : [const Color(0xFF455A64), const Color(0xFF607D8B)],
           ),
         ),
         child: SafeArea(
@@ -626,7 +636,19 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                 child: Row(
                   children: [
-                    const BackButton(color: Colors.white),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () async {
+                        if (_vaultState == VaultState.setupPin || _vaultState == VaultState.confirmPin) {
+                          final existing = await _secureStorage.read(key: '${_userId}_vault_pin');
+                          if (existing != null) {
+                            setState(() => _vaultState = VaultState.unlocked);
+                            return;
+                          }
+                        }
+                        Navigator.pop(context);
+                      },
+                    ),
                     const Expanded(
                       child: Text(
                         "TrueVault",
@@ -641,13 +663,13 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
                            setState(() {
                              _vaultState = VaultState.enterPin;
                              _pinController.clear();
-                             _vaultFiles = []; // Clear memory/screen
+                             _vaultFiles = []; 
                            });
                          },
                          tooltip: "Lock Vault",
                        )
                     else 
-                       const SizedBox(width: 48), // Balance for back button
+                       const SizedBox(width: 48), 
                   ],
                 ),
               ),

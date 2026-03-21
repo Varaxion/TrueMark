@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'true_sign_screen.dart';
 import 'profile_setup_screen.dart';
 import 'signup_screen.dart';
@@ -7,9 +8,12 @@ import 'about_screen.dart';
 import 'true_hide_screen.dart';
 import 'true_meta_screen.dart';
 import 'true_vault_screen.dart';
+import 'settings_screen.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'true_lock_screen.dart';
+import '../widgets/vault_button.dart';
+import '../providers/theme_provider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -46,6 +50,7 @@ class HomeScreen extends StatelessWidget {
 
         final fullDisplayText = '$nameFromDb ($email)';
 
+        final isDark = context.watch<ThemeProvider>().isDark;
         return Scaffold(
           extendBodyBehindAppBar: true, 
           appBar: AppBar(
@@ -63,54 +68,44 @@ class HomeScreen extends StatelessWidget {
                 UserAccountsDrawerHeader(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF4527A0), Color(0xFF5E35B1)], // Darker Bluish-Purple
+                      colors: [Color(0xFF4527A0), Color(0xFF5E35B1)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                   ),
                   accountName: Text(
                     nameFromDb, 
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold, 
-                      fontSize: 18,
-                      letterSpacing: 0.5,
-                      color: Colors.white,
-                    )
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)
                   ),
-                  accountEmail: Text(
-                    user?.email ?? '', 
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
-                    )
-                  ),
-                  currentAccountPicture: GestureDetector(
-                    onTap: () {
-                       Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: const CircleAvatar(
-                        backgroundColor: Colors.white,
-                        child: Icon(Icons.person, size: 40, color: Colors.indigo),
-                      ),
+                  accountEmail: Text(user.email ?? '', style: const TextStyle(color: Colors.white70)),
+                  currentAccountPicture: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    child: Text(
+                      nameFromDb.isNotEmpty ? nameFromDb[0].toUpperCase() : 'U',
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.indigo.shade900),
                     ),
                   ),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.person_outline, color: Colors.indigo),
+                  leading: Icon(Icons.person_outline, color: isDark ? Colors.white70 : Colors.indigo),
                   title: const Text('Profile'),
                   onTap: () {
-                     Navigator.pop(context);
-                     Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
                   },
                 ),
                 const Divider(),
                 ListTile(
-                  leading: const Icon(Icons.info_outline),
+                  leading: Icon(Icons.settings_rounded, color: isDark ? Colors.white70 : Colors.indigo),
+                  title: const Text('Settings'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: Icon(Icons.info_outline, color: isDark ? Colors.white70 : Colors.black87),
                   title: const Text('About'),
                   onTap: () {
                     Navigator.pop(context);
@@ -132,11 +127,13 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           body: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Colors.indigo, Colors.teal],
+                colors: isDark
+                    ? [const Color(0xFF000000), const Color(0xFF0D0D22)]
+                    : [Colors.indigo, Colors.teal],
               ),
             ),
             child: SafeArea(
@@ -148,17 +145,23 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 10),
                     Text(
                       'Securing Digital Truth in a Synthetic World',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            fontSize: 18,
+                            color: isDark ? Colors.white : const Color(0xFF3949AB),
                           ),
                       textAlign: TextAlign.center,
+                      maxLines: 1,
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Protect your images with digital signatures or encrypt sensitive files with military-grade security.',
+                    Text(
+                      'Protect your media and documents with digital signatures or encrypt files with multi-format vault security.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70),
+                      style: TextStyle(
+                        color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     const SizedBox(height: 40),
                     
@@ -175,12 +178,12 @@ class HomeScreen extends StatelessWidget {
                             children: [
                               _ActionTile(
                                 icon: Icons.shield_rounded,
-                                title: 'Protect Image',
+                                title: 'Protect media',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueSignScreen(isProtectMode: true))),
                               ),
                               _ActionTile(
                                 icon: Icons.verified_rounded,
-                                title: 'Verify Image',
+                                title: 'Verify identity',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueSignScreen(isProtectMode: false))),
                               ),
                             ],
@@ -191,18 +194,18 @@ class HomeScreen extends StatelessWidget {
                           // GROUP 2: PRIVACY
                           _DashboardGroupCard(
                             title: 'TrueLock',
-                            subtitle: 'Military-Grade File Encryption',
-                            icon: Icons.enhanced_encryption_rounded,
+                            subtitle: 'AES-256 Military Grade Encryption',
+                            icon: Icons.lock_rounded,
                             color: Colors.teal.shade700,
                             children: [
                               _ActionTile(
-                                icon: Icons.lock_rounded,
-                                title: 'Encrypt File',
+                                icon: Icons.enhanced_encryption_rounded,
+                                title: 'Lock file',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueLockScreen(isEncryptMode: true))),
                               ),
                               _ActionTile(
-                                icon: Icons.lock_open_rounded,
-                                title: 'Decrypt File',
+                                icon: Icons.no_encryption_gmailerrorred_rounded,
+                                title: 'Unlock file',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueLockScreen(isEncryptMode: false))),
                               ),
                             ],
@@ -213,19 +216,19 @@ class HomeScreen extends StatelessWidget {
                           // GROUP 3: STEGANOGRAPHY
                           _DashboardGroupCard(
                             title: 'TrueHide',
-                            subtitle: 'Steganographic Image Concealment',
+                            subtitle: 'Conceal Data Inside Carrier Images',
                             icon: Icons.visibility_off_rounded,
-                            color: Colors.purple.shade600,
+                            color: Colors.deepPurple.shade700,
                             children: [
                               _ActionTile(
-                                icon: Icons.hide_image_rounded,
-                                title: 'Hide Message',
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueHideScreen())),
+                                icon: Icons.add_to_photos_rounded,
+                                title: 'Hide secret',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueHideScreen(isHideMode: true))),
                               ),
                               _ActionTile(
-                                icon: Icons.image_search_rounded,
-                                title: 'Reveal Message',
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueHideScreen())),
+                                icon: Icons.travel_explore_rounded,
+                                title: 'Reveal secret',
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueHideScreen(isHideMode: false))),
                               ),
                             ],
                           ),
@@ -235,13 +238,13 @@ class HomeScreen extends StatelessWidget {
                           // GROUP 4: METADATA & PRIVACY
                           _DashboardGroupCard(
                             title: 'TrueMeta',
-                            subtitle: 'Metadata Stripper & Privacy Cleanser',
-                            icon: Icons.fingerprint_rounded,
-                            color: Colors.orange.shade800,
+                            subtitle: 'Deep Metadata Analysis (EXIF/MP3/PDF)',
+                            icon: Icons.info_rounded,
+                            color: const Color(0xFFFF5722), // Reddish Orange
                             children: [
                               _ActionTile(
-                                icon: Icons.auto_fix_high_rounded,
-                                title: 'Strip Metadata',
+                                icon: Icons.analytics_outlined,
+                                title: 'Analyze metadata',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueMetaScreen())),
                               ),
                             ],
@@ -252,13 +255,13 @@ class HomeScreen extends StatelessWidget {
                           // GROUP 5: SECURE STORAGE
                           _DashboardGroupCard(
                             title: 'TrueVault',
-                            subtitle: 'Secure Encrypted Local Gallery',
-                            icon: Icons.lock_person_rounded,
-                            color: Colors.red.shade900,
+                            subtitle: 'Secure Multi-Format Universal Explorer',
+                            icon: kTrueVaultIcon,
+                            color: kVaultPrimary,
                             children: [
                               _ActionTile(
-                                icon: Icons.security_rounded,
-                                title: 'Open Secure Vault',
+                                icon: kTrueVaultIcon,
+                                title: 'Open secure vault',
                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueVaultScreen())),
                               ),
                             ],
@@ -272,7 +275,7 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         );
-      }
+      },
     );
   }
 }
@@ -294,23 +297,27 @@ class _DashboardGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDark;
     return Card(
-      elevation: 4,
-      color: Colors.white.withOpacity(0.95),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: isDark ? 0 : 2,
+      color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.9),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: isDark ? Colors.white.withOpacity(0.1) : Colors.indigo.withOpacity(0.1)),
+      ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           leading: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withOpacity(isDark ? 0.18 : 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 32, color: color),
           ),
           title: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey[600])),
           childrenPadding: const EdgeInsets.only(bottom: 16),
           children: children,
         ),
@@ -328,10 +335,11 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDark;
     return ListTile(
-      leading: Icon(icon, color: Colors.grey[700]),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      leading: Icon(icon, color: isDark ? Colors.white60 : Colors.grey[700]),
+      title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87)),
+      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: isDark ? Colors.white38 : Colors.grey),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 24),
     );

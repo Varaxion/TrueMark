@@ -18,7 +18,10 @@ import '../utils/constants.dart';
 import '../utils/admin_config.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:path/path.dart' as p;
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'true_vault_screen.dart';
+import '../widgets/vault_button.dart';
 
 class TrueSignScreen extends StatefulWidget {
   final bool isProtectMode; // true = Protect tab, false = Verify tab
@@ -71,15 +74,16 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
         _baseNumber = meta['baseNumber'] as String?;
       });
     } catch (e) {
-      // Silent fail for now
+      // Silent fail
     }
   }
 
   // --- PROTECT TAB ACTIONS ---
 
-  Future<void> _pickImageToProtect() async {
+  Future<void> _pickFileToProtect() async {
     final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
       allowMultiple: false,
     );
 
@@ -92,10 +96,10 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
     }
   }
 
-  Future<void> _pickImageToProtectFromVault() async {
+  Future<void> _pickFileToProtectFromVault() async {
     final File? file = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)),
+      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: false)),
     );
 
     if (file != null) {
@@ -110,10 +114,8 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
   Future<void> _saveToVault(String path) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        showToast("Error: Account not logged in.", backgroundColor: Colors.red);
-        return;
-      }
+      if (user == null) return;
+      
       final root = await getApplicationDocumentsDirectory();
       final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
       if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
@@ -131,7 +133,10 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
     if (_fileToProtect == null) return;
 
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+       showToast("Account not logged in.", backgroundColor: Colors.red);
+       return;
+    }
 
     setState(() {
       _protecting = true;
@@ -158,7 +163,7 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
         outputPath = '${directory.path}/$fileName';
       } else {
         outputPath = await FilePicker.platform.saveFile(
-          dialogTitle: 'Save Protected Image',
+          dialogTitle: 'Save Protected File',
           fileName: fileName,
         );
       }
@@ -205,9 +210,7 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
       });
     } catch (e) {
       setState(() => _protecting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Protection failed: $e'), backgroundColor: Colors.red),
-      );
+      showToast('Protection failed: $e', backgroundColor: Colors.red);
     }
   }
 
@@ -283,7 +286,6 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
         return;
       }
 
-      final uid = parts[0];
       final originalHash = parts[2];
 
       OwnershipRecord? record;
@@ -295,58 +297,50 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
         record = await service.verifyOwnership(originalHash);
       }
 
-      if (record == null) {
+      if (record != null) {
+        setState(() {
+          _verifying = false;
+          _hasVerifyResult = true;
+          _isSignatureValid = true;
+          _verifyRecord = record;
+        });
+      } else {
         setState(() {
           _verifying = false;
           _hasVerifyResult = true;
           _isSignatureValid = false;
-          _verifyMessage = 'Signature is Fake.\nNo matching record found in TrueMark Registry.';
+          _verifyMessage = 'Ownership record not found in registry.';
         });
-        return;
       }
-
-      if (record.ownerUid != uid) {
-        setState(() {
-          _verifying = false;
-          _hasVerifyResult = true;
-          _isSignatureValid = false;
-          _verifyMessage = 'Identity Mismatch.\nSignature does not match Registry Owner.';
-        });
-        return;
-      }
-
-      setState(() {
-        _verifying = false;
-        _hasVerifyResult = true;
-        _isSignatureValid = true;
-        _verifyRecord = record;
-        _verifyMessage = 'SUCCESS: Image Authenticated!\nVerified against TrueMark Registry.';
-      });
     } catch (e) {
       setState(() {
         _verifying = false;
         _hasVerifyResult = true;
         _isSignatureValid = false;
-        _verifyMessage = 'Verification Error: $e';
+        _verifyMessage = 'Verification error: $e';
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDark;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1A237E), Color(0xFF0097A7)], // Indigo to Teal
+            colors: isDark
+                ? [const Color(0xFF000000), const Color(0xFF0D1B2A)]
+                : [const Color(0xFF1A237E), const Color(0xFF3949AB)],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              // Custom AppBar
+              // Standard Header
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                 child: Row(
@@ -364,37 +358,29 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
                 ),
               ),
 
-              const SizedBox(height: 10),
-
-              // Tabs
+              // Tab Bar Navigation
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10),
                 child: Container(
+                  height: 50,
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: TabBar(
                     controller: _tabController,
                     indicator: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white30),
                     ),
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white60,
-                    dividerColor: Colors.transparent,
-                    tabs: const [
-                      Tab(text: "PROTECT", icon: Icon(Icons.shield_rounded)),
-                      Tab(text: "VERIFY", icon: Icon(Icons.verified_rounded)),
-                    ],
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
+                    tabs: const [Tab(text: "Sign"), Tab(text: "Verify")],
                   ),
                 ),
               ),
 
-              const SizedBox(height: 20),
-
-              // Tab View
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
@@ -417,76 +403,135 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Feature Header
+          // Header
           const Icon(Icons.verified_user_rounded, size: 80, color: Colors.white),
           const SizedBox(height: 16),
           const Text(
-            "Protect Your Image",
+            "Protect Your File",
             style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           const Text(
             "Embed an invisible, encrypted signature linked to your identity. Create permanent proof of ownership.",
-            style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
 
-          // Image Picker Card
-          GestureDetector(
-            onTap: _protecting ? null : _pickImageToProtect,
-            child: Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white30, width: 2),
-              ),
-              child: _fileToProtect == null
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+          // Source Picker
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _protecting ? null : _pickFileToProtect,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Column(
                         children: [
-                          Icon(Icons.add_photo_alternate_rounded, size: 60, color: Colors.white70),
-                          SizedBox(height: 10),
-                          Text('Tap to Select Image', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                          Icon(Icons.phonelink_setup_rounded, color: Colors.white70),
+                          SizedBox(height: 4),
+                          Text('From device', style: TextStyle(color: Colors.white, fontSize: 13)),
                         ],
                       ),
-                    )
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.file(_fileToProtect!, fit: BoxFit.cover),
                     ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _protecting ? null : _pickFileToProtectFromVault,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(kTrueVaultIcon, color: Colors.white70),
+                          SizedBox(height: 4),
+                          Text('From TrueVault', style: TextStyle(color: Colors.white, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+          
+          const SizedBox(height: 24),
 
-          if (_fileToProtect == null) ...[
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: _protecting ? null : _pickImageToProtectFromVault,
-              icon: const Icon(Icons.lock_person_rounded, size: 20),
-              label: const Text("LOAD FROM TRUEVAULT", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white54, width: 2),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+          // File Area
+          Container(
+            height: 220,
+            decoration: BoxDecoration(
+              color: Colors.black26,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white12),
             ),
-          ],
+            child: _fileToProtect == null
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.drive_file_rename_outline_rounded, size: 60, color: Colors.white24),
+                        SizedBox(height: 12),
+                        Text('Select file to secure', style: TextStyle(color: Colors.white38)),
+                      ],
+                    ),
+                  )
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        if (['.jpg', '.jpeg', '.png', '.webp'].contains(p.extension(_fileToProtect!.path).toLowerCase()))
+                           Image.file(_fileToProtect!, fit: BoxFit.cover, width: double.infinity)
+                        else
+                           Column(
+                             mainAxisAlignment: MainAxisAlignment.center,
+                             children: [
+                               const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 70),
+                               const SizedBox(height: 10),
+                               Text(p.basename(_fileToProtect!.path), style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
+                             ],
+                           ),
+                        Container(color: Colors.black12),
+                        Positioned(
+                           top: 8, right: 8,
+                           child: IconButton(
+                             icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                             onPressed: () => setState(() => _fileToProtect = null),
+                           ),
+                        )
+                      ],
+                    ),
+                  ),
+          ),
 
           const SizedBox(height: 24),
 
-          // Protect Button (Always Visible)
+          // Action
           SizedBox(
-            height: 50,
+            height: 55,
             child: ElevatedButton.icon(
               onPressed: (_fileToProtect == null || _protecting) ? null : _performProtection,
               icon: _protecting
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.shield_rounded),
-              label: Text(_protecting ? 'PROTECTING...' : 'APPLY PROTECTION'),
+              label: Text(_protecting ? 'Signing...' : 'Sign and protect'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.indigo,
                 foregroundColor: Colors.white,
@@ -496,22 +541,22 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
             ),
           ),
 
-          // Success Area
+          // Success Logic
           if (_protectSuccess) ...[
             const SizedBox(height: 30),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.2),
+                color: Colors.green.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+                border: Border.all(color: Colors.greenAccent.withOpacity(0.3)),
               ),
               child: Column(
                 children: [
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check_circle, color: Colors.greenAccent),
+                      Icon(Icons.check_circle_rounded, color: Colors.greenAccent),
                       SizedBox(width: 10),
                       Text("Protection Applied!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ],
@@ -522,36 +567,23 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
                     child: ElevatedButton.icon(
                       onPressed: () {
                         if (_protectedFilePath != null) {
-                          Share.shareXFiles([XFile(_protectedFilePath!)], text: 'TrueMark Protected Image');
+                          Share.shareXFiles([XFile(_protectedFilePath!)], text: 'TrueMark Proof');
                         }
                       },
-                      icon: const Icon(Icons.share),
-                      label: const Text("SHARE / SAVE", style: TextStyle(fontWeight: FontWeight.bold)),
+                      icon: const Icon(Icons.share_rounded),
+                      label: const Text("Share Proof"),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white, 
                         foregroundColor: Colors.indigo,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        if (_protectedFilePath != null) {
-                          _saveToVault(_protectedFilePath!);
-                        }
-                      },
-                      icon: const Icon(Icons.security),
-                      label: const Text("STORE SECURELY IN VAULT", style: TextStyle(fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo.shade800,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                    child: VaultSaveButton(
+                      onPressed: _protectedFilePath != null ? () => _saveToVault(_protectedFilePath!) : null,
                     ),
                   ),
                 ],
@@ -569,91 +601,139 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Feature Header
-          const Icon(Icons.verified, size: 80, color: Colors.white),
+          // Header
+          const Icon(Icons.verified_rounded, size: 80, color: Colors.white),
           const SizedBox(height: 16),
           const Text(
-            "Verify Image Authenticity",
+            "Verify Authenticity",
             style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           const Text(
-            "Scan any image to reveal hidden metadata. If protected with TrueMark, we'll display the creator's identity and creation date.",
-            style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+            "Scan any document to reveal hidden metadata and display the verified creator's legal digital identity.",
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
 
-          // Image Picker Card
-          GestureDetector(
-            onTap: _verifying ? null : _pickImageToVerify,
-            child: Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white30, width: 2),
-              ),
-              child: _fileToVerify == null
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+          // Source Picker (Verify)
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _verifying ? null : _pickImageToVerify,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Column(
                         children: [
-                          Icon(Icons.search, size: 60, color: Colors.white70),
-                          SizedBox(height: 10),
-                          Text('Tap to Select Image', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                          Icon(Icons.file_upload_rounded, color: Colors.white70),
+                          SizedBox(height: 4),
+                          Text('From device', style: TextStyle(color: Colors.white, fontSize: 13)),
                         ],
                       ),
-                    )
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.file(_fileToVerify!, fit: BoxFit.cover),
                     ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _verifying ? null : _pickImageToVerifyFromVault,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(kTrueVaultIcon, color: Colors.white70),
+                          SizedBox(height: 4),
+                          Text('From TrueVault', style: TextStyle(color: Colors.white, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+          
+          const SizedBox(height: 24),
 
-          if (_fileToVerify == null) ...[
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: _verifying ? null : _pickImageToVerifyFromVault,
-              icon: const Icon(Icons.security, size: 20),
-              label: const Text("LOAD FROM TRUEVAULT", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white54, width: 2),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+          // File View (Verify)
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.black26,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white12),
             ),
-          ],
+            child: _fileToVerify == null
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.zoom_in_rounded, size: 60, color: Colors.white24),
+                        SizedBox(height: 10),
+                        Text('Select image to verify', style: TextStyle(color: Colors.white38)),
+                      ],
+                    ),
+                  )
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Image.file(_fileToVerify!, fit: BoxFit.cover, width: double.infinity),
+                        Container(color: Colors.black12),
+                        Positioned(
+                          top: 8, right: 8,
+                          child: IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                            onPressed: () => setState(() => _fileToVerify = null),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+          ),
 
           const SizedBox(height: 24),
 
-          // Verification Status
+          // Status & Results
           if (_verifying) ...[
             const Center(child: CircularProgressIndicator(color: Colors.white)),
             const SizedBox(height: 16),
             Text(_verifyMessage, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
           ],
 
-          // Verification Result
           if (_hasVerifyResult && !_verifying) ...[
             if (!_isSignatureValid)
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.2),
+                  color: Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 60),
+                    const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 50),
+                    const SizedBox(height: 12),
+                    const Text('VERIFICATION FAILED', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 10),
-                    const Text('VERIFICATION FAILED', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 18)),
-                    const SizedBox(height: 10),
-                    Text(_verifyMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+                    Text(_verifyMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 13)),
                   ],
                 ),
               )
@@ -661,16 +741,16 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.teal.withOpacity(0.2),
+                  color: Colors.teal.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.tealAccent.withOpacity(0.5), width: 2),
+                  border: Border.all(color: Colors.tealAccent.withOpacity(0.3), width: 1),
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.verified, color: Colors.tealAccent, size: 70),
-                    const SizedBox(height: 10),
-                    const Text('AUTHENTIC IMAGE', style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.w900, fontSize: 22)),
-                    const Divider(height: 30, color: Colors.white24),
+                    const Icon(Icons.verified_rounded, color: Colors.tealAccent, size: 60),
+                    const SizedBox(height: 12),
+                    const Text('AUTHENTIC IMAGE', style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.w900, fontSize: 20)),
+                    const Divider(height: 30, color: Colors.white12),
                     _infoRow('Creator', _verifyRecord!.ownerEmail),
                     _infoRow('Created', DateFormat.yMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(_verifyRecord!.timestamp.toInt()))),
                     _infoRow('Registry ID', _verifyRecord!.imageHash.substring(0, 10) + '...'),
@@ -690,11 +770,11 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 90,
-            child: Text(label, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+            width: 80,
+            child: Text(label, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+            child: Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 12)),
           ),
         ],
       ),

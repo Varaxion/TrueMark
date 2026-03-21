@@ -2,16 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'screens/signup_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'screens/home_screen.dart';
+import 'providers/theme_provider.dart';
 // import 'screens/secure_inbox_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const AppInitializer());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: const AppInitializer(),
+    ),
+  );
 }
 
 class AppInitializer extends StatefulWidget {
@@ -50,17 +57,19 @@ class _AppInitializerState extends State<AppInitializer> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: FutureBuilder(
-        future: _initFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (snapshot.hasError) {
-            return Scaffold(
+    return FutureBuilder(
+      future: _initFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(body: Center(child: CircularProgressIndicator())),
+          );
+        }
+        if (snapshot.hasError) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
               body: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Center(
@@ -78,11 +87,11 @@ class _AppInitializerState extends State<AppInitializer> {
                   ),
                 ),
               ),
-            );
-          }
-          return const TrueMarkApp();
-        },
-      ),
+            ),
+          );
+        }
+        return const TrueMarkApp();
+      },
     );
   }
 }
@@ -92,14 +101,12 @@ class TrueMarkApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
     return MaterialApp(
       title: 'TrueMark',
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        scaffoldBackgroundColor: Colors.grey[100],
-        fontFamily: 'Montserrat',
-        useMaterial3: true,
-      ),
+      theme: ThemeProvider.lightTheme,
+      darkTheme: ThemeProvider.darkTheme,
+      themeMode: themeProvider.themeMode,
       debugShowCheckedModeBanner: false,
       home: const AuthWrapper(),
     );

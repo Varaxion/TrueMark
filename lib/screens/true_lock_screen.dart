@@ -8,7 +8,10 @@ import 'package:oktoast/oktoast.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:path/path.dart' as p;
 import 'package:truemark/services/true_lock_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'true_vault_screen.dart';
+import '../widgets/vault_button.dart';
 
 class TrueLockScreen extends StatefulWidget {
   final bool isEncryptMode; // Opens directly to Encrypt or Decrypt tab
@@ -53,7 +56,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
   // --- ACTIONS ---
 
   Future<void> _pickFileToEncrypt() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
     if (result != null && result.files.single.path != null) {
       setState(() {
         _fileToEncrypt = File(result.files.single.path!);
@@ -97,7 +100,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
   Future<void> _pickFileToEncryptFromVault() async {
     final File? file = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)),
+      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: false)),
     );
     if (file != null) {
       setState(() {
@@ -277,14 +280,16 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDark;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          // Green gradient theme for TrueLock
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1B5E20), Color(0xFF00897B)], // Dark Green to Emerald
+            colors: isDark
+                ? [const Color(0xFF000000), const Color(0xFF064E3B)]
+                : [const Color(0xFF1B5E20), const Color(0xFF00897B)], 
           ),
         ),
         child: SafeArea(
@@ -329,8 +334,8 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
                     unselectedLabelColor: Colors.white60,
                     dividerColor: Colors.transparent,
                     tabs: const [
-                      Tab(text: "ENCRYPT", icon: Icon(Icons.lock_rounded)),
-                      Tab(text: "DECRYPT", icon: Icon(Icons.lock_open_rounded)),
+                      Tab(text: "Encrypt", icon: Icon(Icons.lock_rounded)),
+                      Tab(text: "Decrypt", icon: Icon(Icons.lock_open_rounded)),
                     ],
                   ),
                 ),
@@ -381,42 +386,108 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
           ),
           const SizedBox(height: 32),
 
-          // File Picker Card
-          _GlassCard(
-            child: Column(
+          // Mode Selector
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
               children: [
-                const Icon(Icons.description_rounded, size: 50, color: Colors.white70),
-                const SizedBox(height: 10),
-                if (_fileToEncrypt != null)
-                  Text(
-                    "Selected: ${_fileToEncrypt!.path.split(Platform.pathSeparator).last}",
-                    style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  )
-                else
-                  const Text("Select an image to encrypt", style: TextStyle(color: Colors.white70)),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _pickFileToEncrypt,
-                      icon: const Icon(Icons.folder_open, size: 18),
-                      label: const Text("Device"),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, foregroundColor: Colors.white),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _isEncrypting ? null : _pickFileToEncrypt,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(Icons.phonelink_setup_rounded, color: Colors.white70),
+                          SizedBox(height: 4),
+                          Text('From device', style: TextStyle(color: Colors.white, fontSize: 13)),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: _pickFileToEncryptFromVault,
-                      icon: const Icon(Icons.lock_person_rounded, size: 18),
-                      label: const Text("TrueVault"),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700, foregroundColor: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _isEncrypting ? null : _pickFileToEncryptFromVault,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(kTrueVaultIcon, color: Colors.white70),
+                          SizedBox(height: 4),
+                          Text('From TrueVault', style: TextStyle(color: Colors.white, fontSize: 13)),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
           ),
+
+          const SizedBox(height: 24),
+
+          // File Display Area
+          Center(
+            child: Container(
+              height: 180,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: _fileToEncrypt == null
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.file_present_rounded, size: 50, color: Colors.white24),
+                          SizedBox(height: 12),
+                          Text('Select file to encrypt', style: TextStyle(color: Colors.white38)),
+                        ],
+                      ),
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.enhanced_encryption_rounded, color: Colors.greenAccent, size: 50),
+                              const SizedBox(height: 10),
+                              Text(p.basename(_fileToEncrypt!.path), style: const TextStyle(color: Colors.white), textAlign: TextAlign.center),
+                              Text("${(_fileToEncrypt!.lengthSync() / 1024).toStringAsFixed(2)} KB", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                            ],
+                          ),
+                          Positioned(
+                            top: 8, right: 8,
+                            child: IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white60, size: 24),
+                              onPressed: () => setState(() => _fileToEncrypt = null),
+                            )
+                          )
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+          
           const SizedBox(height: 24),
           
           // Password Field
@@ -428,9 +499,9 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
             },
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: "Set Password (Min 6 chars)",
+              labelText: "Set security password",
               labelStyle: const TextStyle(color: Colors.white70),
-              prefixIcon: const Icon(Icons.vpn_key, color: Colors.white70),
+              prefixIcon: const Icon(Icons.vpn_key_rounded, color: Colors.white70),
               enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.white30), borderRadius: BorderRadius.circular(12)),
               focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.white), borderRadius: BorderRadius.circular(12)),
             ),
@@ -496,6 +567,10 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
                        SizedBox(width: 10),
                        Text("Encryption Successful!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                      ],
+                   ),
+                   const SizedBox(height: 12),
+                   VaultSaveButton(
+                     onPressed: () => _saveToVault(_encryptedResult!.path),
                    ),
                    const SizedBox(height: 16),
                    SizedBox(
@@ -569,9 +644,9 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
                       onPressed: _pickFileToDecryptFromVault,
-                      icon: const Icon(Icons.lock_person_rounded, size: 18),
+                      icon: const Icon(kTrueVaultIcon, size: 18),
                       label: const Text("TrueVault"),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700, foregroundColor: Colors.white),
+                      style: ElevatedButton.styleFrom(backgroundColor: kVaultPrimary, foregroundColor: Colors.white),
                     ),
                   ],
                 ),
@@ -643,19 +718,8 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
               ],
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _saveToVault(_decryptedResultFile!.path),
-                icon: const Icon(Icons.security),
-                label: const Text("STORE SECURELY IN VAULT", style: TextStyle(fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal.shade800,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
+            VaultSaveButton(
+              onPressed: () => _saveToVault(_decryptedResultFile!.path),
             ),
             
             // PREVIEW AREA

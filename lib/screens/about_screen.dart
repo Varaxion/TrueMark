@@ -1,368 +1,194 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
+import '../utils/constants.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDark;
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF4527A0), Color(0xFF5E35B1)], // Darker Bluish-Purple
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Custom AppBar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-                child: Row(
-                  children: [
-                    const BackButton(color: Colors.white),
-                    const Expanded(
-                      child: Text(
-                        "About TrueMark",
-                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
+      backgroundColor: isDark ? const Color(0xFF0D0D0D) : const Color(0xFFF5F7FA),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+              onPressed: () => Navigator.pop(context),
+            ),
+            expandedHeight: 180,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark 
+                        ? [const Color(0xFF1E1E2C), const Color(0xFF0A0A0A)]
+                        : [const Color(0xFF3949AB), const Color(0xFF1A237E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
+                child: Center(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // App Logo/Icon
-                      Center(
-                        child: Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.2),
-                            border: Border.all(color: Colors.white, width: 3),
-                          ),
-                          child: const Icon(
-                            Icons.verified_user,
-                            size: 60,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // App Name & Version
-                      const Center(
-                        child: Column(
-                          children: [
-                            Text(
-                              "TrueMark",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              "Version 1.1.0",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
                       const SizedBox(height: 40),
-
-                      // Tagline
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: const Text(
-                          "Securing Digital Truth in a Synthetic World",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      // Description
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "What is TrueMark?",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              "TrueMark is a cutting-edge digital security platform designed to combat image manipulation and verify content authenticity. In a world where synthetic media is becoming indistinguishable from reality, TrueMark provides the tools you need to prove authenticity and protect your digital assets.",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 15,
-                                height: 1.6,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Features Section
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Core Features",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            _buildFeatureItem(
-                              icon: Icons.shield,
-                              color: Colors.white,
-                              title: "TrueSign",
-                              subtitle: "Digital Signature & Tamper Detection",
-                              description: "Embed invisible, encrypted signatures into your images. Create permanent, verifiable proof of ownership that's linked to your identity and stored in our secure cloud registry.",
-                            ),
-                            const SizedBox(height: 20),
-                            _buildFeatureItem(
-                              icon: Icons.lock,
-                              color: Colors.white,
-                              title: "TrueLock",
-                              subtitle: "Military-Grade File Encryption",
-                              description: "Protect sensitive files with AES-256-GCM encryption. Only you can decrypt them with your password. Perfect for securing confidential images before sharing.",
-                            ),
-                            const SizedBox(height: 20),
-                            _buildFeatureItem(
-                              icon: Icons.visibility_off,
-                              color: Colors.white,
-                              title: "TrueHide",
-                              subtitle: "Steganographic Image Concealment (Coming Soon)",
-                              description: "Hide encrypted images inside innocent-looking cover images. Dual-layer security combining encryption and steganography for covert communication.",
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Technology Section
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Built with Security First",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              "• AES-256-GCM Authenticated Encryption\n• PBKDF2 Key Derivation (100,000 iterations)\n• LSB Steganography for Invisible Signatures\n• Cloud-Based Ownership Registry\n• Zero-Knowledge Architecture",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 15,
-                                height: 1.8,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Mission Section
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.white.withOpacity(0.15),
-                              Colors.white.withOpacity(0.05),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white30),
-                        ),
-                        child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.rocket_launch, color: Colors.amber, size: 28),
-                                SizedBox(width: 12),
-                                Text(
-                                  "Our Mission",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              "To empower creators, journalists, and individuals with the tools to prove authenticity in an increasingly synthetic digital world. We believe everyone deserves to protect their work and verify the truth.",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 15,
-                                height: 1.6,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 40),
-
-                      // Footer
-                      Center(
-                        child: Column(
-                          children: [
-                            const Text(
-                              "Engineered with ❤️ for Digital Trust",
-                              style: TextStyle(
-                                color: Colors.white60,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "© ${DateTime.now().year} TrueMark. All rights reserved.",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                      Image.asset('assets/images/logo.png', height: 60, errorBuilder: (_, __, ___) => const Icon(Icons.verified_user_rounded, size: 60, color: Colors.white)),
+                      const SizedBox(height: 10),
+                      Text(
+                        'TrueMark v2.0.0',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionTitle('The Mission', isDark),
+                  const SizedBox(height: 12),
+                  Text(
+                    'TrueMark is engineered to restore "Digital Truth" in an era of content manipulation. We provide a professional security suite that empowers creators and users to protect their media through advanced digital signatures and military-grade encryption.',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      height: 1.6,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle('Professional Security Suite', isDark),
+                  const SizedBox(height: 20),
+                  _buildFeatureItem(
+                    'TrueSign',
+                    'Digital Signatures & Tamper Detection for Media and PDFs.',
+                    Icons.verified_user_rounded,
+                    Colors.indigoAccent,
+                    isDark,
+                  ),
+                  _buildFeatureItem(
+                    'TrueLock',
+                    'Universal AES-256-GCM Authenticated Encryption for all files.',
+                    Icons.lock_rounded,
+                    Colors.tealAccent,
+                    isDark,
+                  ),
+                  _buildFeatureItem(
+                    'TrueHide',
+                    'High-capacity LSB Steganography to conceal secret data.',
+                    Icons.visibility_off_rounded,
+                    Colors.deepPurpleAccent,
+                    isDark,
+                  ),
+                  _buildFeatureItem(
+                    'TrueMeta',
+                    'Recursive Forensic Cleaning & Privacy Sanitization.',
+                    Icons.info_rounded,
+                    Colors.orangeAccent,
+                    isDark,
+                  ),
+                  _buildFeatureItem(
+                    'TrueVault',
+                    'Sandboxed PIN-protected Explorer with Secure Storage.',
+                    kTrueVaultIcon,
+                    kVaultPrimary,
+                    isDark,
+                  ),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle('The Methodology', isDark),
+                  const SizedBox(height: 12),
+                  _buildMethodologyCard(isDark),
+                  const SizedBox(height: 40),
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          'Engineered with excellence',
+                          style: GoogleFonts.outfit(
+                            color: isDark ? Colors.white38 : Colors.black38,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        const Text(
+                          '© 2026 TrueMark Security Labs.',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildFeatureItem({
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String subtitle,
-    required String description,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildSectionTitle(String title, bool isDark) {
+    return Text(
+      title.toUpperCase(),
+      style: GoogleFonts.outfit(
+        fontSize: 14,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 2,
+        color: isDark ? Colors.white38 : Colors.black38,
       ),
+    );
+  }
+
+  Widget _buildFeatureItem(String title, String desc, IconData icon, Color color, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 50,
-            height: 50,
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 28),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: GoogleFonts.outfit(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: color.withOpacity(0.8),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    color: Colors.white60,
+                  desc,
+                  style: GoogleFonts.inter(
                     fontSize: 14,
-                    height: 1.5,
+                    color: isDark ? Colors.white60 : Colors.black54,
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -370,6 +196,36 @@ class AboutScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMethodologyCard(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black10),
+      ),
+      child: Column(
+        children: [
+          _methodologyRow('Cryptography', 'AES-256-GCM / PBKDF2', isDark),
+          const Divider(height: 24, color: Colors.white10),
+          _methodologyRow('Steganography', 'LSB Pixel Substitution', isDark),
+          const Divider(height: 24, color: Colors.white10),
+          _methodologyRow('Verification', 'SHA-256 / Cloud Registry', isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _methodologyRow(String label, String value, bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+        Text(value, style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontFamily: 'monospace')),
+      ],
     );
   }
 }

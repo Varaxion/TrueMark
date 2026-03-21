@@ -1,71 +1,41 @@
-# 🛡️ TrueMark
+# TrueMark: The Professional Digital Integrity & Privacy Suite (v2.0.0)
 
-### **Securing Digital Truth in a Synthetic World**
-
-TrueMark is a powerful, multi-platform security suite designed to combat image manipulation, verify content authenticity, and provide military-grade file protection. In an era of synthetic media and deepfakes, TrueMark empowers creators and users to reclaim ownership of their digital assets.
+**TrueMark** is a high-performance, cross-platform security application designed to establish "Digital Truth." It provides users with a comprehensive suite of tools for digital signatures, military-grade encryption, data steganography, and forensic metadata sanitization.
 
 ---
 
-## 🚀 The "True" Suite
+## 🚀 Feature Highlights
 
-TrueMark is built around three core pillars of digital security, each with a distinct focus and visual identity:
+-   **TrueSign**: Embed invisible, encrypted digital signatures into images and PDFs. Verify creator identity and content integrity via a secure registry.
+-   **TrueLock**: Military-grade AES-256-GCM encryption for universal file protection (.tmk wrapper). Uses PBKDF2 for high-entropy key derivation.
+-   **TrueHide**: Advanced Least Significant Bit (LSB) steganography to conceal secret binary/text data within carrier images.
+-   **TrueMeta**: Rapid forensic scans to extract and recursively purge identifying metadata from images, MP3s, and documents.
+-   **TrueVault**: A sandboxed, PIN-protected environment for internal file management, isolated from public storage.
 
-### 🛡️ **TrueSign** (Blue Theme)
-*Digital Signature & Ownership Verification*
-- **Purpose**: Create permanent, verifiable proof of ownership.
-- **Mechanism**: Uses LSB steganography to embed an invisible, encrypted signature (User ID + Timestamp + Image Hash) directly into the image pixels.
-- **Verification**: Cross-references extraction data with a secure cloud registry to detect tampering or identity mismatches.
+## 🛠️ Technical Methodology
 
-### 🔒 **TrueLock** (Green Theme)
-*Military-Grade File Encryption*
-- **Purpose**: Protect sensitive files before storage or transmission.
-- **Mechanism**: Implements **AES-256-GCM** authenticated encryption.
-- **Security**: PBKDF2 key derivation with 100,000 iterations for password protection.
-- **Format**: Outputs secure `.tmk` files that only the owner can unlock.
-
-### 🎭 **TrueHide** (Purple Theme) — *Under Development*
-*Steganographic Concealment*
-- **Purpose**: Enable covert communication through "Double-Layer" security.
-- **Mechanism**: Encrypts target images using dynamic hash-based passwords, then hides the resulting cipher-text inside innocent cover images.
-- **Status**: UI implemented; backend logic currently in development.
-
----
-
-## 🛠️ Technology Stack
-
-- **Framework**: [Flutter](https://flutter.dev/) (Cross-platform Dart)
-- **Backend/Auth**: [Firebase](https://firebase.google.com/) (Authentication & NoSQL Firestore)
-- **Cryptography**: AES-GCM (Authenticated Encryption), SHA-256 Hashing, PBKDF2.
-- **Steganography**: Least Significant Bit (LSB) Pixel Manipulation.
-- **Platform Strategy**: Focused on Mobile (Android) and Desktop (Windows).
-
----
-
-## 📱 Platform Status
-
-| Platform | Status | Version |
+| Methodology | Purpose | Technical Specification |
 | :--- | :--- | :--- |
-| **Android** | ✅ Production Ready | 1.0.0 |
-| **Windows** | 🚧 Under Development | Beta |
-| **iOS / macOS** | ❌ Not Supported | N/A |
-| **Web** | ❌ Not Supported | N/A |
+| **Cryptography** | Confidentiality & Authenticity | AES-256-GCM + PBKDF2 with SHA-256 |
+| **Steganography** | Data Hiding | LSB Pixel Matrix Substitution (RGBA) |
+| **Integrity** | Tamper Detection | SHA-256 Hashing |
+| **Identification** | Ownership Proof | Firestore Digital Asset Registry |
 
-*Note: The Windows application is currently undergoing plugin compatibility optimization.*
+## 💻 Tech Stack
+
+-   **Language**: Dart 3.8.1+
+-   **Framework**: Flutter
+-   **Backend**: Firebase (Auth, Cloud Firestore)
+-   **Cryptographic Core**: encrypt, pointycastle, crypto
+-   **System Access**: path_provider, file_picker, share_plus
+
+## 🔮 Future Roadmap
+
+-   **AI Analysis**: TF-Lite based Deepfake detection for unverified media.
+-   **Blockchain Layer**: Moving the signature registry to a decentralized, immutable ledger.
+-   **Biometrics**: Native FaceID and Fingerprint integration for vault access.
+-   **Extension Ecosystem**: Dedicated browser extensions for instant on-web verification.
 
 ---
 
-
-
-## 🎨 Design Philosophy
-
-TrueMark follows a **Premium Dark Aesthetic**, utilizing:
-- **Glassmorphic** UI components for depth and transparency.
-- **Vibrant Gradients** to differentiate feature zones.
-- **Minimalist Typography** for a clean, professional security-focused experience.
-
----
-
-## 📝 License
-
-Engineered with ❤️ for Digital Trust.
-© 2026 TrueMark. All rights reserved.
+**© 2026 TrueMark Security Labs. Engineered for Digital Truth.**
