@@ -8,17 +8,10 @@ import 'screens/signup_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'screens/home_screen.dart';
-import 'providers/theme_provider.dart';
-// import 'screens/secure_inbox_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
-      child: const AppInitializer(),
-    ),
-  );
+  runApp(const AppInitializer());
 }
 
 class AppInitializer extends StatefulWidget {
@@ -46,8 +39,6 @@ class _AppInitializerState extends State<AppInitializer> {
         options: DefaultFirebaseOptions.currentPlatform,
       );
     } catch (e) {
-      // If the app is already initialized (e.g. from a previous Hot Restart), 
-      // we can safely ignore the 'duplicate-app' error and proceed.
       if (e.toString().contains('duplicate-app')) {
         return;
       }
@@ -101,14 +92,30 @@ class TrueMarkApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
     return MaterialApp(
       title: 'TrueMark',
-      theme: ThemeProvider.lightTheme,
-      darkTheme: ThemeProvider.darkTheme,
-      themeMode: themeProvider.themeMode,
+      themeMode: ThemeMode.dark,
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.indigo,
+        scaffoldBackgroundColor: Colors.black,
+        fontFamily: 'Montserrat',
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.dark,
+          surface: Colors.black,
+          onSurface: Colors.white,
+        ),
+      ),
       debugShowCheckedModeBanner: false,
       home: const AuthWrapper(),
+      routes: {
+        '/login': (_) => const LoginScreen(),
+        '/signup': (_) => const SignupScreen(),
+        '/setup': (_) => const ProfileSetupScreen(),
+        '/home': (_) => const HomeScreen(),
+      },
     );
   }
 }

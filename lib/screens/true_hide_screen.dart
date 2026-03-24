@@ -1,21 +1,22 @@
-
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:oktoast/oktoast.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
+import 'package:oktoast/oktoast.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart';
-import '../providers/theme_provider.dart';
+import 'package:path/path.dart' as p;
+import 'package:google_fonts/google_fonts.dart';
+import '../services/steg_service.dart';
 import 'true_vault_screen.dart';
 import '../widgets/vault_button.dart';
+import '../widgets/password_strength_indicator.dart';
+import '../utils/constants.dart';
 
 class TrueHideScreen extends StatefulWidget {
   final bool isHideMode;
+
   const TrueHideScreen({super.key, required this.isHideMode});
 
   @override
@@ -24,900 +25,393 @@ class TrueHideScreen extends StatefulWidget {
 
 class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController _hidePasswordController = TextEditingController();
+  final TextEditingController _revealPasswordController = TextEditingController();
   
-  // -- HIDE (ENCODE) STATE --
-  File? _coverImage;
-  bool _isEmbedding = false;
-  String _secretType = 'text'; // 'text' or 'image'
-  final TextEditingController _secretTextController = TextEditingController();
-  File? _secretImage;
-  final TextEditingController _encodePasswordController = TextEditingController();
-  File? _outputImage; // The result of hiding
-  String _passwordStrength = "";
-  Color _strengthColor = Colors.transparent;
-  double _strengthValue = 0;
-  
-  // -- SHARED MOCK STATE --
-  static String _mockSecretType = 'text';
-  static String _mockSecretText = '';
-  static File? _mockSecretImage;
+  // Hide State
+  File? _carrierImage;
+  File? _secretFile;
+  String _secretText = '';
+  bool _isEmbeddingText = true;
+  bool _hiding = false;
+  String? _hiddenFilePath;
 
-  // -- SEEK (DECODE) STATE --
-  File? _stegoImage; // The image with hidden data
-  bool _isExtracting = false;
-  final TextEditingController _decodePasswordController = TextEditingController();
+  // Reveal State
+  File? _imageToReveal;
+  bool _revealing = false;
   String? _revealedText;
-  File? _revealedImage;
+  String? _revealedFilePath;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.isHideMode ? 0 : 1);
+    _tabController = TabController(
+      length: 3, 
+      vsync: this,
+      initialIndex: widget.isHideMode ? 0 : 1,
+    );
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _secretTextController.dispose();
-    _encodePasswordController.dispose();
-    _decodePasswordController.dispose();
+    _hidePasswordController.dispose();
+    _revealPasswordController.dispose();
     super.dispose();
   }
 
   // --- ACTIONS ---
 
-  Future<void> _pickCoverImage() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _coverImage = File(result.files.single.path!);
-        _outputImage = null; // Reset previous result
-      });
-    }
-  }
-
-  Future<void> _pickSecretImage() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _secretImage = File(result.files.single.path!);
-      });
-    }
-  }
-
-  Future<void> _pickStegoImage() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _stegoImage = File(result.files.single.path!);
-        _revealedText = null;
-        _revealedImage = null;
-      });
-    }
-  }
-
-  Future<void> _pickCoverImageFromVault() async {
-    final File? file = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)),
-    );
-    if (file != null) {
-      setState(() {
-        _coverImage = file;
-        _outputImage = null;
-      });
-    }
-  }
-
-  Future<void> _pickSecretImageFromVault() async {
-    final File? file = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)),
-    );
-    if (file != null) {
-      setState(() {
-        _secretImage = file;
-      });
-    }
-  }
-
-  Future<void> _pickStegoImageFromVault() async {
-    final File? file = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)),
-    );
-    if (file != null) {
-      setState(() {
-        _stegoImage = file;
-        _revealedText = null;
-        _revealedImage = null;
-      });
-    }
-  }
-
-  Future<void> _saveToVault(String absolutePath) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        showToast("Error: Account not logged in.", backgroundColor: Colors.red);
-        return;
-      }
-      final root = await getApplicationDocumentsDirectory();
-      final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
-      if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
-      
-      final file = File(absolutePath);
-      final newPath = '${vaultDir.path}/${p.basename(file.path)}';
-      await file.copy(newPath);
-      showToast("File secured in TrueVault!", position: ToastPosition.bottom, backgroundColor: Colors.green);
-    } catch (e) {
-      showToast("Error saving to vault", backgroundColor: Colors.red);
-    }
-  }
-
-  void _checkStrength(String pass) {
-    if (pass.isEmpty) {
-      setState(() {
-        _passwordStrength = "";
-        _strengthColor = Colors.transparent;
-        _strengthValue = 0;
-      });
-      return;
-    }
-
-    int score = 0;
-    if (pass.length >= 8) score++;
-    if (pass.contains(RegExp(r'[A-Z]'))) score++;
-    if (pass.contains(RegExp(r'[0-9]'))) score++;
-    if (pass.contains(RegExp(r'[!@#\$&*~]'))) score++;
-
-    String text;
-    Color color;
-    double val;
-
-    if (pass.length < 6) {
-      text = "Too Short";
-      color = Colors.red;
-      val = 0.2;
-    } else if (score < 2) {
-      text = "Weak";
-      color = Colors.orange;
-      val = 0.4;
-    } else if (score < 4) {
-      text = "Moderate";
-      color = Colors.yellow;
-      val = 0.7;
+  Future<void> _pickFile({required bool isCarrier, bool fromVault = false}) async {
+    File? picked;
+    if (fromVault) {
+      final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => TrueVaultScreen(isPicker: true, pickImagesOnly: isCarrier)));
+      if (result != null && result is File) picked = result;
     } else {
-      text = "Strong";
-      color = Colors.green;
-      val = 1.0;
+      final result = await FilePicker.platform.pickFiles(type: isCarrier ? FileType.image : FileType.any, allowMultiple: false);
+      if (result != null && result.files.single.path != null) picked = File(result.files.single.path!);
     }
-
-    setState(() {
-      _passwordStrength = text;
-      _strengthColor = color;
-      _strengthValue = val;
-    });
+    if (picked != null) {
+      setState(() {
+         if (isCarrier) { _carrierImage = picked; _hiddenFilePath = null; }
+         else { _secretFile = picked; }
+      });
+    }
   }
 
-  void _performHide() async {
-    // Mock Processing
-    setState(() => _isEmbedding = true);
-    await Future.delayed(const Duration(seconds: 2)); // Simulate work
-    
-    // Create meaningful filename for sharing
-    // Uses temporary directory so it doesn't clutter user storage unless saved
-    final directory = await getTemporaryDirectory();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final extension = p.extension(_coverImage!.path);
-    final newPath = '${directory.path}/TrueHide_Encrypted_$timestamp$extension';
-    
-    // Copy cover image to new path (simulating the embedding result)
-    final output = await _coverImage!.copy(newPath);
-    
-    // Save Mock State for specific demo flow
-    _mockSecretType = _secretType;
-    _mockSecretText = _secretTextController.text;
-    _mockSecretImage = _secretImage;
-
-    setState(() {
-      _isEmbedding = false;
-      _outputImage = output; 
-    });
-    
-    showToast("Secret successfully hidden!", backgroundColor: Colors.green);
+  Future<void> _pickReveal({bool fromVault = false}) async {
+    File? picked;
+    if (fromVault) {
+      final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: true)));
+      if (result != null && result is File) picked = result;
+    } else {
+      final result = await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: false);
+      if (result != null && result.files.single.path != null) picked = File(result.files.single.path!);
+    }
+    if (picked != null) setState(() { _imageToReveal = picked; _revealedText = null; _revealedFilePath = null; });
   }
 
-  void _performReveal() async {
-    // Mock Processing
-    setState(() => _isExtracting = true);
-    await Future.delayed(const Duration(seconds: 2)); // Simulate work
+  Future<void> _performHide() async {
+    final pswd = _hidePasswordController.text;
+    if (_carrierImage == null || pswd.isEmpty) { showToast("Media/Key Required", backgroundColor: Colors.amber); return; }
+    if (pswd.length < 8) { showToast("Key must be 8+ chars."); return; }
+    
+    setState(() => _hiding = true);
+    try {
+      final outDir = await getApplicationDocumentsDirectory();
+      final originalBase = p.basenameWithoutExtension(_carrierImage!.path);
+      final outFile = File('${outDir.path}/${originalBase}_TrueHide_Conceal_${DateTime.now().millisecondsSinceEpoch}.png');
+      File result;
 
-    setState(() {
-      _isExtracting = false;
-      if (_mockSecretType == 'text') {
-         _revealedText = _mockSecretText.isNotEmpty 
-             ? _mockSecretText 
-             : "CONFIDENTIAL: Project TrueMark launch codes: 8821-9923-AX99"; // Fallback
-         _revealedImage = null;
+      if (_isEmbeddingText) {
+        if (_secretText.isEmpty) throw Exception("Empty Secret String");
+        result = await StegService.embedStringInImage(inputFile: _carrierImage!, plaintext: _secretText, password: pswd, outputFile: outFile);
       } else {
-         _revealedText = null;
-         _revealedImage = _mockSecretImage;
+        if (_secretFile == null) throw Exception("Select Secret Binary");
+        result = await StegService.embedFileInImage(carrierImage: _carrierImage!, secretFile: _secretFile!, password: pswd, outputFile: outFile);
       }
-    });
-
-     showToast("Secret revealed!", backgroundColor: Colors.green);
+      setState(() { _hiddenFilePath = result.path; _hiding = false; });
+      showToast("Data Effectively Concealed", backgroundColor: kColorTrueHide);
+    } catch (e) {
+      setState(() => _hiding = false);
+      showToast("Concealment Failed", backgroundColor: Colors.red);
+    }
   }
 
-  // --- UI BUILDERS ---
+  Future<void> _performReveal() async {
+    final pswd = _revealPasswordController.text;
+    if (_imageToReveal == null || pswd.isEmpty) return;
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = context.watch<ThemeProvider>().isDark;
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [const Color(0xFF000000), const Color(0xFF2D0A31)]
-                : [const Color(0xFF4527A0), const Color(0xFF7B1FA2)],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Custom AppBar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-                child: Row(
-                  children: [
-                    const BackButton(color: Colors.white),
-                    const Expanded(
-                      child: Text(
-                        "TrueHide",
-                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-              ),
+    setState(() => _revealing = true);
+    try {
+      final text = await StegService.extractStringFromImage(inputFile: _imageToReveal!, password: pswd);
+      if (text != null && text.isNotEmpty) {
+          if (text.startsWith('FILE:')) {
+            final outDir = await getApplicationDocumentsDirectory();
+            final originalBase = p.basenameWithoutExtension(_imageToReveal!.path);
+            final outFile = File('${outDir.path}/${originalBase}_TrueHide_Reveal_${DateTime.now().millisecondsSinceEpoch}.bin');
+            final success = await StegService.extractFileFromImage(carrierImage: _imageToReveal!, password: pswd, outputFilePath: outFile.path);
+            if (success) setState(() { _revealedFilePath = outFile.path; _revealing = false; });
+            else throw Exception();
+         } else {
+            setState(() { _revealedText = text; _revealing = false; });
+         }
+      } else {
+         setState(() => _revealing = false);
+         showToast("Invalid Master Key", backgroundColor: Colors.red);
+      }
+    } catch (e) {
+      setState(() => _revealing = false);
+      showToast("Extraction Failed", backgroundColor: Colors.red);
+    }
+  }
 
-              // Tabs
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10),
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.black26,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: TabBar(
-                    controller: _tabController,
-                    indicator: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white54,
-                    dividerColor: Colors.transparent,
-                    tabs: const [
-                      Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.visibility_off_rounded, size: 18),
-                            SizedBox(width: 8),
-                            Text("HIDE"),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.image_search_rounded, size: 18),
-                            SizedBox(width: 8),
-                            Text("REVEAL"),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+  Future<void> _saveToVault(String path) async {
+     final user = FirebaseAuth.instance.currentUser; if (user == null) return;
+     final root = await getApplicationDocumentsDirectory();
+     final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
+     if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
+     await File(path).copy('${vaultDir.path}/${p.basename(path)}');
+     showToast("Protected in Vault", backgroundColor: kColorTrueHide);
+  }
 
-              // Content View
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildHideTab(),
-                    _buildSeekTab(),
-                  ],
-                ),
-              ),
-            ],
-          ),
+  // --- THEME HELPERS ---
+  Color _mainText(bool _) => Colors.white;
+  Color _subText(bool _) => Colors.white70;
+  Color _hintText(bool _) => Colors.white24;
+  Color _glassBg(bool _) => Colors.white.withOpacity(0.05);
+  Color _glassBorder(bool _) => Colors.white10;
+  Color _iconColor(bool _) => kColorTrueHide;
+  Color _activeColor(bool _) => kColorTrueHide.withOpacity(0.8);
+
+  // --- UI ---
+
+  Widget _buildTabHeader(bool isDark) {
+    return Container(
+      height: 50, margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: _glassBg(isDark), borderRadius: BorderRadius.circular(16)),
+      child: TabBar(
+        controller: _tabController,
+        labelColor: _mainText(isDark),
+        unselectedLabelColor: _subText(isDark),
+        indicator: BoxDecoration(color: _iconColor(isDark).withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+        tabs: const [Tab(text: "Hide"), Tab(text: "Reveal"), Tab(icon: Icon(Icons.info_outline, size: 20))],
+      ),
+    );
+  }
+
+  Widget _buildSourcePicker({required bool isCarrier, required bool isDark, bool isReveal = false}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: _glassBg(isDark), borderRadius: BorderRadius.circular(20)),
+          child: Row(children: [
+            _pickerBtn(Icons.upload_file_rounded, "From Device", () => isReveal ? _pickReveal(fromVault: false) : _pickFile(isCarrier: isCarrier, fromVault: false), isDark),
+            const SizedBox(width: 4),
+            _pickerBtn(kTrueVaultIcon, "From TrueVault", () => isReveal ? _pickReveal(fromVault: true) : _pickFile(isCarrier: isCarrier, fromVault: true), isDark),
+          ]),
         ),
       ),
     );
   }
 
-  Widget _buildHideTab() {
-    bool canHide = _coverImage != null 
-        && ((_secretType == 'text' && _secretTextController.text.isNotEmpty) || (_secretType == 'image' && _secretImage != null))
-        && _encodePasswordController.text.length >= 6 
-        && !_isEmbedding;
+  Widget _pickerBtn(IconData icon, String label, VoidCallback onTap, bool isDark) {
+    return Expanded(child: GestureDetector(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.5), borderRadius: BorderRadius.circular(12)), child: Column(children: [Icon(icon, color: _subText(isDark)), const SizedBox(height: 4), Text(label, style: TextStyle(color: _mainText(isDark), fontSize: 11, fontWeight: FontWeight.bold))]))));
+  }
 
+  Widget _buildHideTab(bool isDark) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-           const Text(
-            "Conceal a Secret",
-            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-           const Text(
-            "Hide text or images inside a cover image using steganography.",
-            style: TextStyle(color: Colors.white60, fontSize: 13),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 30),
+      child: Column(children: [
+        const Icon(Icons.add_to_photos_rounded, size: 70, color: kColorTrueHide),
+        const SizedBox(height: 16),
+        Text("Hide Secret", style: GoogleFonts.outfit(color: _mainText(isDark), fontSize: 24, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text("Modulate pixel bits to conceal encrypted information.", textAlign: TextAlign.center, style: TextStyle(color: _subText(isDark), fontSize: 13)),
+        const SizedBox(height: 32),
 
-          // 1. Cover Image Selection
-          _GlassCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white24,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(Icons.image_rounded, color: Colors.white),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text("Cover Image", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    const Icon(Icons.info_outline_rounded, color: Colors.white38, size: 20),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                
-                // Professional Picker
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.black26,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _isEmbedding ? null : _pickCoverImage,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.03),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Column(
-                              children: [
-                                Icon(Icons.stay_current_portrait_rounded, color: Colors.white60, size: 20),
-                                SizedBox(height: 2),
-                                Text('From device', style: TextStyle(color: Colors.white, fontSize: 11)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _isEmbedding ? null : _pickCoverImageFromVault,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.03),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Column(
-                              children: [
-                                Icon(kTrueVaultIcon, color: Colors.white60, size: 20),
-                                SizedBox(height: 2),
-                                Text('From TrueVault', style: TextStyle(color: Colors.white, fontSize: 11)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
+        _sectionTitle("1. Select Carrier Image", isDark),
+        _buildSourcePicker(isCarrier: true, isDark: isDark),
+        const SizedBox(height: 12),
+        _buildImagePreview(_carrierImage, isDark),
 
-                Container(
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.black12,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white12),
-                    image: _coverImage != null 
-                      ? DecorationImage(image: FileImage(_coverImage!), fit: BoxFit.cover, opacity: 0.8)
-                      : null,
-                  ),
-                  child: _coverImage == null 
-                    ? const Center(child: Text("No cover selected", style: TextStyle(color: Colors.white24, fontSize: 12)))
-                    : Stack(
-                        children: [
-                           Container(
-                             alignment: Alignment.center,
-                             color: Colors.black45,
-                             child: const Text("Cover image ready", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                           ),
-                           Positioned(
-                             top: 4, right: 4,
-                             child: IconButton(
-                               icon: const Icon(Icons.close, color: Colors.white60, size: 20),
-                               onPressed: () => setState(() => _coverImage = null),
-                             ),
-                           )
-                        ],
-                      ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 20),
-
-          // 2. Secret Content
-          _GlassCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white24,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(Icons.lock, color: Colors.white),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text("Secret Content", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    // Toggle Type
-                    Container(
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: Colors.black26,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          _buildToggleItem("Text", _secretType == 'text', () => setState(() => _secretType = 'text')),
-                          _buildToggleItem("Image", _secretType == 'image', () => setState(() => _secretType = 'image')),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                if (_secretType == 'text')
-                  TextField(
-                    controller: _secretTextController,
-                    onChanged: (_) => setState(() {}),
-                    style: const TextStyle(color: Colors.white),
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      hintText: "Enter secret message...",
-                      hintStyle: const TextStyle(color: Colors.white38),
-                      filled: true,
-                      fillColor: Colors.black12,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  )
-                else ...[
-                  GestureDetector(
-                    onTap: _pickSecretImage,
-                    child: Container(
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: Colors.black12,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white24, style: BorderStyle.solid),
-                        image: _secretImage != null 
-                          ? DecorationImage(image: FileImage(_secretImage!), fit: BoxFit.cover, opacity: 0.8)
-                          : null,
-                      ),
-                      child: _secretImage == null 
-                        ? const Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.add_photo_alternate_outlined, color: Colors.white54),
-                                SizedBox(height: 4),
-                                Text("Select secret image", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                              ],
-                            ),
-                          )
-                        : Container(
-                            alignment: Alignment.center,
-                            color: Colors.black45,
-                            child: const Text("SECRET LOADED", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                          ),
-                    ),
-                  ),
-                  if (_secretImage == null) ...[
-                    const SizedBox(height: 12),
-                    VaultLoadButton(
-                      onPressed: _pickSecretImageFromVault,
-                    ),
-                  ],
-                ],
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // 3. Password Check
-          TextField(
-            controller: _encodePasswordController,
-            obscureText: true,
-            onChanged: (val) {
-               _checkStrength(val);
-            },
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.vpn_key, color: Colors.white70),
-              labelText: "Encryption Password",
-               labelStyle: const TextStyle(color: Colors.white70),
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.1),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          
-          if (_encodePasswordController.text.isNotEmpty) ...[
-             const SizedBox(height: 8),
-             Row(
-               children: [
-                 Expanded(
-                   child: LinearProgressIndicator(
-                     value: _strengthValue,
-                     color: _strengthColor,
-                     backgroundColor: Colors.white12,
-                     minHeight: 4,
-                   ),
-                 ),
-                 const SizedBox(width: 10),
-                 Text(_passwordStrength, style: TextStyle(color: _strengthColor, fontWeight: FontWeight.bold, fontSize: 12)),
-               ],
-             ),
-          ],
-
-          const SizedBox(height: 30),
-
-          // Action Button
-          SizedBox(
-            height: 55,
-            child: ElevatedButton(
-              onPressed: canHide ? _performHide : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE040FB), // Neon Purple
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: Colors.white12,
-                disabledForegroundColor: Colors.white38,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: canHide ? 8 : 0,
-                shadowColor: canHide ? Colors.purpleAccent.withOpacity(0.5) : Colors.transparent,
-              ),
-              child: _isEmbedding 
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.enhanced_encryption),
-                      SizedBox(width: 8),
-                      Text("HIDE", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-            ),
-          ),
-          
-          if (_outputImage != null) ...[
-            const SizedBox(height: 30),
-            _buildResultCard(true),
-          ],
-          
-          const SizedBox(height: 30),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSeekTab() {
-    bool canReveal = _stegoImage != null 
-        && _decodePasswordController.text.isNotEmpty 
-        && !_isExtracting;
-
-    return SingleChildScrollView(
-       padding: const EdgeInsets.all(24),
-       child: Column(
-         crossAxisAlignment: CrossAxisAlignment.stretch,
-         children: [
-            const Text(
-            "Reveal a Secret",
-            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-           const Text(
-            "Extract hidden content from a TrueHide secured image.",
-            style: TextStyle(color: Colors.white60, fontSize: 13),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 30),
-
-          _GlassCard(child: Column(
-            children: [
-              GestureDetector(
-                  onTap: _pickStegoImage,
-                  child: Container(
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: Colors.black12,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white24, style: BorderStyle.solid),
-                      image: _stegoImage != null 
-                        ? DecorationImage(image: FileImage(_stegoImage!), fit: BoxFit.cover)
-                        : null,
-                    ),
-                    child: _stegoImage == null 
-                      ? const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.qr_code_scanner, color: Colors.white54, size: 50),
-                            SizedBox(height: 12),
-                            Text("Tap to select image to scan", style: TextStyle(color: Colors.white54)),
-                          ],
-                        )
-                      : null,
-                  ),
-                ),
-                if (_stegoImage == null) ...[
-                  const SizedBox(height: 12),
-                  VaultLoadButton(
-                    onPressed: _pickStegoImageFromVault,
-                    label: 'SCAN FROM TRUEVAULT',
-                  ),
-                ],
-            ],
-          )),
-
-          const SizedBox(height: 20),
-
-          TextField(
-            controller: _decodePasswordController,
-            obscureText: true,
-            onChanged: (_) => setState(() {}),
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.password, color: Colors.white70),
-              labelText: "Decryption Password",
-              labelStyle: const TextStyle(color: Colors.white70),
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.1),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 30),
-
-          SizedBox(
-            height: 55,
-            child: ElevatedButton(
-              onPressed: canReveal ? _performReveal : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00E5FF), // Cyan Accent
-                foregroundColor: Colors.black, // Dark text on cyan
-                disabledBackgroundColor: Colors.white12,
-                disabledForegroundColor: Colors.white38,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: canReveal ? 8 : 0,
-                shadowColor: canReveal ? Colors.cyanAccent.withOpacity(0.5) : Colors.transparent,
-              ),
-              child: _isExtracting 
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                : const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.lock_open),
-                      SizedBox(width: 8),
-                      Text("REVEAL", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-            ),
-          ),
-
-          if (_revealedText != null || _revealedImage != null) ...[
-             const SizedBox(height: 30),
-             Container(
-               padding: const EdgeInsets.all(20),
-               decoration: BoxDecoration(
-                 color: const Color(0xFF00C853).withOpacity(0.2), // Green success bg
-                 borderRadius: BorderRadius.circular(16),
-                 border: Border.all(color: Colors.greenAccent),
-               ),
-               child: Column(
-                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                 children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.greenAccent),
-                        SizedBox(width: 10),
-                        Text("SECRET REVEALED", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (_revealedText != null)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.black26,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: SelectableText(
-                          _revealedText!,
-                          style: const TextStyle(color: Colors.white, fontFamily: 'Courier', fontSize: 14),
-                        ),
-                      ),
-                      
-                    if (_revealedImage != null)
-                      GestureDetector(
-                        onTap: () {
-                          // Optional: Open full screen or zoom
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white24),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(_revealedImage!, fit: BoxFit.contain),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      VaultSaveButton(
-                        onPressed: () => _saveToVault(_revealedImage!.path),
-                      ),
-                 ],
-               ),
-             ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToggleItem(String title, bool isSelected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.purpleAccent : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white54,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResultCard(bool isHide) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.purpleAccent.withOpacity(0.5)),
-      ),
-      child: Column(
-        children: [
-          const Icon(Icons.check_circle, color: Colors.purpleAccent, size: 40),
-          const SizedBox(height: 8),
-          const Text(
-            "Image Processed Successfully!",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                 if (_outputImage != null) {
-                    Share.shareXFiles(
-                      [XFile(_outputImage!.path)], 
-                      text: 'Hidden Secret Image (TrueHide)'
-                    );
-                 }
-              },
-              icon: const Icon(Icons.share),
-              label: const Text("SHARE / SAVE"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purpleAccent, 
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ),
+        const SizedBox(height: 24),
+        _sectionTitle("2. Payload Definition", isDark),
+        _modeSwitcher(isDark),
+        const SizedBox(height: 16),
+        if (_isEmbeddingText)
+          _buildGlassTextField(hint: "Private Message Content", icon: Icons.text_fields_rounded, isDark: isDark, onChanged: (v) => _secretText = v, obscure: false)
+        else ...[
+          _buildSourcePicker(isCarrier: false, isDark: isDark),
           const SizedBox(height: 12),
-          VaultSaveButton(
-            onPressed: _outputImage != null ? () => _saveToVault(_outputImage!.path) : null,
-          ),
+          _buildFileNameBox(_secretFile, "Select Secret File", isDark),
         ],
+
+        const SizedBox(height: 24),
+        _sectionTitle("3. Password", isDark),
+        _buildGlassTextField(controller: _hidePasswordController, hint: "Password", icon: Icons.security_rounded, isDark: isDark, onChanged: (_) => setState(() {})),
+        PasswordStrengthIndicator(password: _hidePasswordController.text),
+
+        const SizedBox(height: 32),
+        SizedBox(width: double.infinity, height: 55, child: ElevatedButton.icon(onPressed: (_carrierImage == null || _hiding || _hidePasswordController.text.length < 8) ? null : _performHide, icon: _hiding ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: _mainText(isDark))) : const Icon(Icons.visibility_off_rounded), label: const Text("Hide", style: TextStyle(fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: kColorTrueHide, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
+        if (_hiddenFilePath != null) _buildResultCard(_hiddenFilePath!, "Concealment Finished", isDark),
+      ]),
+    );
+  }
+
+  Widget _buildRevealTab(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(children: [
+        const Icon(Icons.travel_explore_rounded, size: 70, color: kColorTrueHide),
+        const SizedBox(height: 16),
+        Text("Reveal Secret", style: GoogleFonts.outfit(color: _mainText(isDark), fontSize: 24, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text("Identify and reconstruct bitstreams from carrier images.", textAlign: TextAlign.center, style: TextStyle(color: _subText(isDark), fontSize: 13)),
+        const SizedBox(height: 32),
+        
+        _buildSourcePicker(isCarrier: true, isDark: isDark, isReveal: true),
+        const SizedBox(height: 16),
+        _buildImagePreview(_imageToReveal, isDark),
+        
+        const SizedBox(height: 24),
+        _buildGlassTextField(controller: _revealPasswordController, hint: "Password", icon: Icons.key_rounded, isDark: isDark, onChanged: (_) => setState(() {})),
+        const SizedBox(height: 24),
+        SizedBox(width: double.infinity, height: 55, child: ElevatedButton.icon(onPressed: (_imageToReveal == null || _revealing || _revealPasswordController.text.isEmpty) ? null : _performReveal, icon: _revealing ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: _mainText(isDark))) : const Icon(Icons.search_rounded), label: const Text("Reveal", style: TextStyle(fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: kColorTrueHide, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))))),
+        
+        if (_revealedText != null) ...[
+          const SizedBox(height: 24),
+          _buildGlassContainer(isDark, child: Column(children: [Text("Plaintext Extracted", style: TextStyle(color: _iconColor(isDark), fontSize: 11, fontWeight: FontWeight.bold)), const SizedBox(height: 12), Text(_revealedText!, style: TextStyle(color: _mainText(isDark), fontSize: 16, fontWeight: FontWeight.bold), textAlign: TextAlign.center)]))
+        ],
+        if (_revealedFilePath != null) ...[
+          const SizedBox(height: 24),
+          SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => Share.shareXFiles([XFile(_revealedFilePath!)]), icon: const Icon(Icons.share), label: const Text("Share/Save"), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
+        ],
+      ]),
+    );
+  }
+
+  // --- UI COMPONENTS ---
+
+  Widget _buildImagePreview(File? f, bool isDark) {
+    final isImg = f != null && ['.jpg', '.jpeg', '.png', '.webp'].contains(p.extension(f.path).toLowerCase());
+    return Container(
+      height: 160, width: double.infinity,
+      decoration: BoxDecoration(color: _glassBg(isDark), borderRadius: BorderRadius.circular(24), border: Border.all(color: _glassBorder(isDark))),
+      child: f == null
+        ? Center(child: Text("Select Image to Process", style: TextStyle(color: _hintText(isDark), fontSize: 11)))
+        : isImg
+          ? ClipRRect(borderRadius: BorderRadius.circular(24), child: Image.file(f, fit: BoxFit.cover, width: double.infinity, height: double.infinity))
+          : Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(Icons.image_not_supported_rounded, color: Colors.redAccent, size: 36),
+              const SizedBox(height: 8),
+              Text(p.basename(f.path), style: TextStyle(color: _subText(isDark), fontSize: 11), overflow: TextOverflow.ellipsis),
+              Text("Carrier must be an image file", style: TextStyle(color: Colors.redAccent.withOpacity(0.8), fontSize: 10)),
+            ])),
+    );
+  }
+
+  Widget _buildFileNameBox(File? f, String placeholder, bool isDark) {
+    return Container(
+      height: 64, width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(color: _glassBg(isDark), borderRadius: BorderRadius.circular(12), border: Border.all(color: _glassBorder(isDark))),
+      child: Row(children: [
+        Icon(f == null ? Icons.attach_file_rounded : Icons.insert_drive_file_rounded, color: f == null ? _hintText(isDark) : _iconColor(isDark), size: 20),
+        const SizedBox(width: 10),
+        Expanded(child: Text(f == null ? placeholder : p.basename(f.path), style: TextStyle(color: f == null ? _hintText(isDark) : _mainText(isDark), fontSize: 12, fontWeight: f == null ? FontWeight.normal : FontWeight.bold), overflow: TextOverflow.ellipsis)),
+        if (f != null) GestureDetector(onTap: () => setState(() => _secretFile = null), child: Icon(Icons.close, color: _subText(isDark), size: 18)),
+      ]),
+    );
+  }
+
+  Widget _sectionTitle(String t, bool isDark) {
+     return Padding(padding: const EdgeInsets.only(bottom: 12), child: Align(alignment: Alignment.centerLeft, child: Text(t, style: GoogleFonts.outfit(color: _subText(isDark), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5))));
+  }
+
+  Widget _modeSwitcher(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: _glassBg(isDark), borderRadius: BorderRadius.circular(15)),
+      child: Row(children: [
+        _modeBtn(true, "String Payload", isDark), const SizedBox(width: 4), _modeBtn(false, "Binary Payload", isDark),
+      ]),
+    );
+  }
+
+  Widget _modeBtn(bool active, String t, bool isDark) {
+    bool isSelected = _isEmbeddingText == active;
+    return Expanded(child: GestureDetector(onTap: () => setState(() => _isEmbeddingText = active), child: Container(padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: isSelected ? _activeColor(isDark) : Colors.transparent, borderRadius: BorderRadius.circular(12)), child: Center(child: Text(t, style: TextStyle(color: isSelected ? Colors.white : _subText(isDark), fontSize: 12, fontWeight: FontWeight.bold))))));
+  }
+
+  Widget _buildGlassTextField({
+    TextEditingController? controller,
+    required String hint,
+    required IconData icon,
+    required bool isDark,
+    Function(String)? onChanged,
+    bool obscure = true,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(15),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: TextField(
+          controller: controller, obscureText: obscure, onChanged: onChanged,
+          style: TextStyle(color: _mainText(isDark), fontWeight: FontWeight.bold),
+          decoration: InputDecoration(
+            hintText: hint, hintStyle: TextStyle(color: _hintText(isDark), fontWeight: FontWeight.normal),
+            filled: true, fillColor: _glassBg(isDark),
+            prefixIcon: Icon(icon, color: _subText(isDark)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: _glassBorder(isDark))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: _glassBorder(isDark))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: kColorTrueHide)),
+          ),
+        ),
       ),
     );
   }
-}
 
-class _GlassCard extends StatelessWidget {
-  final Widget child;
-  const _GlassCard({required this.child});
+  Widget _buildResultCard(String path, String msg, bool isDark) {
+     return Padding(
+       padding: const EdgeInsets.only(top: 24),
+       child: _buildGlassContainer(isDark, child: Column(children: [
+         Text(msg, style: TextStyle(color: _iconColor(isDark), fontWeight: FontWeight.bold, fontSize: 16)),
+         const SizedBox(height: 16),
+         SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => Share.shareXFiles([XFile(path)]), icon: const Icon(Icons.share), label: const Text("Share/Save"), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
+         const SizedBox(height: 12),
+         SizedBox(width: double.infinity, height: 50, child: VaultSaveButton(onPressed: () => _saveToVault(path))),
+       ])),
+     );
+  }
+
+  Widget _buildGlassContainer(bool isDark, {required Widget child}) {
+     return ClipRRect(
+       borderRadius: BorderRadius.circular(20),
+       child: BackdropFilter(
+         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+         child: Container(
+           padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: _glassBg(isDark), borderRadius: BorderRadius.circular(20), border: Border.all(color: _glassBorder(isDark))),
+           child: child,
+         ),
+       ),
+     );
+  }
+
+  Widget _buildAboutTab(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Icon(Icons.visibility_off_rounded, size: 70, color: kColorTrueHide),
+        const SizedBox(height: 16),
+        Text("About TrueHide", style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: _mainText(isDark))),
+        const SizedBox(height: 12),
+        Text("TrueHide implements advanced LSB pixel modulation. We weave encrypted bitstreams into the natural noise of photo data, creating a storage medium that is mathematically robust and visually undetectable. Your master password provides the entropy needed to recover the secret sequence.", style: TextStyle(color: _subText(isDark), height: 1.5)),
+        const SizedBox(height: 20),
+        _featurePoint("AES-256 Entropy", "Secrets are randomized and encrypted before concealment.", Icons.enhanced_encryption_rounded, isDark),
+        _featurePoint("Least Significant Bit", "Modifies ONLY the zero-order bits for zero visual drift.", Icons.gradient_rounded, isDark),
+        _featurePoint("Deterministic Extraction", "Precise reconstruction of payload strings and binaries.", Icons.find_in_page_rounded, isDark),
+      ]),
+    );
+  }
+
+  Widget _featurePoint(String title, String desc, IconData icon, bool isDark) {
+    return Padding(padding: const EdgeInsets.only(bottom: 16), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: _iconColor(isDark), size: 20), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(color: _mainText(isDark), fontWeight: FontWeight.bold)), Text(desc, style: TextStyle(color: _subText(isDark), fontSize: 13))]))]));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+    const isDark = true;
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(iconTheme: IconThemeData(color: _mainText(isDark)), title: Text("TrueHide", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)), backgroundColor: Colors.transparent, elevation: 0, foregroundColor: _mainText(isDark)),
+      body: Stack(
+        children: [
+          Container(decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFF130113), Color(0xFF030003)]))),
+          SafeArea(child: Column(children: [_buildTabHeader(isDark), Expanded(child: TabBarView(controller: _tabController, children: [_buildHideTab(isDark), _buildRevealTab(isDark), _buildAboutTab(isDark)]))])),
+        ],
       ),
-      child: child,
     );
   }
 }

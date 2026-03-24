@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
+import '../utils/constants.dart';
 
-const IconData kTrueVaultIcon = Icons.motion_photos_on_rounded; // Vault Combination Wheel
-
-/// Consistent metal/slate colors for TrueVault.
-const Color kVaultPrimary = Color(0xFF455A64); // Slate Gray 700 (Gunmetal)
-const Color kVaultAccent = Color(0xFF607D8B);  // Slate Gray 500 (Steel)
-
-/// A full-width styled button for loading a file from TrueVault.
-/// Used in TrueMeta, TrueSign, TrueLock, TrueHide.
+/// A full-width styled button for loading/importing from TrueVault.
 class VaultLoadButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final String label;
@@ -15,7 +9,7 @@ class VaultLoadButton extends StatelessWidget {
   const VaultLoadButton({
     super.key,
     required this.onPressed,
-    this.label = 'Load from TrueVault',
+    this.label = 'Import from TrueVault',
   });
 
   @override
@@ -39,7 +33,6 @@ class VaultLoadButton extends StatelessWidget {
 }
 
 /// A full-width styled button for saving a file to TrueVault.
-/// Used in TrueMeta, TrueSign, TrueLock, TrueHide after a successful operation.
 class VaultSaveButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final String label;
@@ -47,7 +40,7 @@ class VaultSaveButton extends StatelessWidget {
   const VaultSaveButton({
     super.key,
     required this.onPressed,
-    this.label = 'Save to TrueVault',
+    this.label = 'Save in TrueVault',
   });
 
   @override

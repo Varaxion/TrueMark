@@ -1,8 +1,9 @@
-
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:math';
 import 'package:cryptography/cryptography.dart';
+import 'package:path/path.dart' as p;
 
 class TrueLockService {
   // Using AES-GCM (Galois/Counter Mode) for Authenticated Encryption
@@ -26,7 +27,6 @@ class TrueLockService {
     final nonce = await _generateRandomBytes(12);
 
     // 4. Encrypt the data
-    // Authenticated encryption: verifies the data hasn't been tampered with
     final secretBox = await _algorithm.encrypt(
       plainText,
       secretKey: secretKey,
@@ -44,7 +44,6 @@ class TrueLockService {
   }
 
   /// Decrypts data using a user-provided password.
-  /// Throws standard errors if password is wrong or file is tampered.
   Future<Uint8List> decryptData(Uint8List fileData, String password) async {
     // 1. Verify Header
     final headerBytes = utf8.encode(_fileHeader);
@@ -71,8 +70,6 @@ class TrueLockService {
     final secretKey = await _deriveKey(password, salt);
 
     // 4. Decrypt
-    // If the password is wrong OR the file was modified, logic throws an error here.
-    // SecretBox.fromConcatenation splits the bytes into Tag + Cipher correctly.
     final secretBox = SecretBox.fromConcatenation(
       cipherBytes,
       nonceLength: 12,
@@ -86,44 +83,51 @@ class TrueLockService {
       );
       return Uint8List.fromList(decrypted);
     } catch (e) {
-      // Typically CryptographyError if auth tag mismatch (wrong password/tampering)
       throw Exception("Decryption failed. Incorrect password or corrupted file.");
     }
   }
 
+  // --- FILE HANDLING METHODS (Requested in TrueLockScreen) ---
+
+  Future<File> encryptFile(File inputFile, String password) async {
+    final bytes = await inputFile.readAsBytes();
+    final encryptedData = await encryptData(bytes, password);
+    // [FileName]_TrueLock_Encrypt_[Timestamp].tmk
+    final originalBase = p.basenameWithoutExtension(inputFile.path);
+    final outPath = p.join(p.dirname(inputFile.path), '${originalBase}_TrueLock_Encrypt_${DateTime.now().millisecondsSinceEpoch}.tmk');
+    final outFile = File(outPath);
+    await outFile.writeAsBytes(encryptedData);
+    return outFile;
+  }
+
+  Future<File> decryptFile(File encryptedFile, String password) async {
+    final bytes = await encryptedFile.readAsBytes();
+    final decryptedData = await decryptData(bytes, password);
+    // [EncryptedName]_TrueLock_Decrypt_[Timestamp].dec
+    final currentBase = p.basenameWithoutExtension(encryptedFile.path);
+    final outPath = p.join(p.dirname(encryptedFile.path), '${currentBase}_TrueLock_Decrypt_${DateTime.now().millisecondsSinceEpoch}.dec');
+    final outFile = File(outPath);
+    await outFile.writeAsBytes(decryptedData);
+    return outFile;
+  }
+
   /// PBKDF2 Key Derivation
-  /// Turns a text password into a strong 256-bit key
   Future<SecretKey> _deriveKey(String password, List<int> salt) async {
     final pbkdf2 = Pbkdf2(
       macAlgorithm: Hmac.sha256(),
-      iterations: 100000, // NIST recommended minimum (High iteration cost)
+      iterations: 100000, 
       bits: 256,
     );
-
-    final newSecretKey = await pbkdf2.deriveKeyFromPassword(
+    return await pbkdf2.deriveKeyFromPassword(
       password: password,
       nonce: salt,
     );
-
-    return newSecretKey;
   }
 
   /// Utility to generate secure random bytes
   Future<Uint8List> _generateRandomBytes(int length) async {
-    final bytes = List<int>.filled(length, 0);
-    // Cryptography package handles secure random internally generally,
-    // but for simple bytes we can use standard interface or a simple helper if needed.
-    // Actually, `SecretKeyGenerator` is not for raw bytes.
-    // Let's use Dart's math.Random.secure() or the package's robust way if available.
-    // The `cryptography` package typically uses `MyRandom` but we can just use universal logic
-    // or standard Dart secure random since `cryptography` deals with keys mainly.
-    // Wait, `cryptography` usually doesn't expose a raw random bytes helper publicly easily 
-    // without `SimpleKeyPair`.
-    // Let's use `dart:math` SecureRandom for the Salt/Nonce which is standard.
-    
     return Uint8List.fromList(List.generate(length, (_) => _secureRandom.nextInt(256)));
   }
   
-  // Basic secure random usage
   final _secureRandom = Random.secure();
 }
