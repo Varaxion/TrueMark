@@ -120,7 +120,7 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
       } catch (_) {}
 
       final originalBase = p.basenameWithoutExtension(_fileToProtect!.path);
-      final fileName = '${originalBase}_TrueSign_${DateTime.now().millisecondsSinceEpoch}$extension';
+      final fileName = '${originalBase}_TrueSign_Protect_${DateTime.now().millisecondsSinceEpoch}$extension';
       
       final tempDir = await getTemporaryDirectory();
       final outPath = '${tempDir.path}/$fileName';
@@ -374,9 +374,9 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
        child: _buildGlassContainer(isDark, child: Column(children: [
          Text(msg, style: TextStyle(color: _iconColor(isDark), fontWeight: FontWeight.bold, fontSize: 16)),
          const SizedBox(height: 16),
-         SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => Share.shareXFiles([XFile(path)]), icon: const Icon(Icons.share), label: const Text("Share/Save"), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
+         SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => Share.shareXFiles([XFile(path)]), icon: const Icon(Icons.share), label: const Text("Share/Save"), style: ElevatedButton.styleFrom(backgroundColor: kColorTrueSign, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
          const SizedBox(height: 12),
-         SizedBox(width: double.infinity, height: 50, child: VaultSaveButton(onPressed: () {
+         SizedBox(width: double.infinity, height: 50, child: VaultSaveButton(color: kColorTrueSign, onPressed: () {
             final user = FirebaseAuth.instance.currentUser; if (user == null) return;
             getApplicationDocumentsDirectory().then((root) {
               final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');

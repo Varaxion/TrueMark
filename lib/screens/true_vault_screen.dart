@@ -225,6 +225,47 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
     }
   }
 
+  Future<void> _renameFile(File file) async {
+    final controller = TextEditingController(text: p.basename(file.path));
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1F2B),
+        title: const Text("Rename Asset", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: "New Name",
+            hintStyle: const TextStyle(color: Colors.white38),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: kVaultPrimary.withOpacity(0.5))),
+            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: kVaultPrimary)),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white60))),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isEmpty) return;
+              final newPath = p.join(file.parent.path, newName);
+              try {
+                await file.rename(newPath);
+                Navigator.pop(context);
+                showToast("Asset Label Updated", backgroundColor: kColorTrueVault);
+                _loadVaultFiles();
+              } catch (e) {
+                showToast("Renaming Failed", backgroundColor: Colors.red);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kVaultPrimary, foregroundColor: Colors.white),
+            child: const Text("Rename"),
+          ),
+        ],
+      ),
+    );
+  }
+
   // --- UI BUILDERS ---
 
   Widget _buildAuthScreen() {
@@ -293,7 +334,7 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
     if (_isGridView) {
       return GestureDetector(onTap: () => _onFileTapped(file, isImage), child: Container(decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8), border: Border.all(color: isTmk ? kColorTrueLock.withOpacity(0.5) : Colors.white24)), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: isImage ? Image.file(file, fit: BoxFit.cover) : isTmk ? Container(color: Colors.black45, child: buildTmkIcon()) : isVideo ? const Center(child: Icon(Icons.video_file, color: Colors.blueAccent, size: 40)) : isPdf ? const Center(child: Icon(Icons.picture_as_pdf, color: Colors.redAccent, size: 40)) : const Center(child: Icon(Icons.insert_drive_file, color: Colors.white54, size: 40)))));
     } else {
-      return Card(color: Colors.black45, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(side: BorderSide(color: isTmk ? kColorTrueLock.withOpacity(0.3) : Colors.white12), borderRadius: BorderRadius.circular(12)), child: ListTile(onTap: () => _onFileTapped(file, isImage), leading: Container(width: 50, height: 50, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: isImage ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(file, fit: BoxFit.cover)) : isTmk ? buildTmkIcon(size: 20) : isVideo ? const Icon(Icons.video_file, color: Colors.blueAccent) : isPdf ? const Icon(Icons.picture_as_pdf, color: Colors.redAccent) : const Icon(Icons.insert_drive_file, color: Colors.white54)), title: Text(p.basename(file.path), style: TextStyle(color: isTmk ? kColorTrueLock : Colors.white, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis), subtitle: Text("$dateStr  •  $sizeMb MB", style: const TextStyle(color: Colors.white60, fontSize: 11)), trailing: const Icon(Icons.more_vert, color: Colors.white70)));
+      return Card(color: Colors.black45, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(side: BorderSide(color: isTmk ? kColorTrueLock.withOpacity(0.3) : Colors.white12), borderRadius: BorderRadius.circular(12)), child: ListTile(onTap: () => _onFileTapped(file, isImage), leading: Container(width: 50, height: 50, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: isImage ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(file, fit: BoxFit.cover)) : isTmk ? buildTmkIcon(size: 20) : isVideo ? const Icon(Icons.video_file, color: Colors.blueAccent) : isPdf ? const Icon(Icons.picture_as_pdf, color: Colors.redAccent) : const Icon(Icons.insert_drive_file, color: Colors.white54)), title: Text(p.basename(file.path), style: TextStyle(color: isTmk ? kColorTrueLock : Colors.white, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis), subtitle: Text("$dateStr  •  $sizeMb MB", style: const TextStyle(color: Colors.white60, fontSize: 11))));
     }
   }
 
@@ -303,6 +344,7 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
         Padding(padding: const EdgeInsets.all(16.0), child: Text(p.basename(file.path), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
         const Divider(color: Colors.white24),
         ListTile(leading: const Icon(Icons.share, color: kColorTrueVault), title: const Text('Export Outside', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _exportFile(file); }),
+        ListTile(leading: const Icon(Icons.edit_rounded, color: Colors.white70), title: const Text('Rename Asset', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _renameFile(file); }),
         ListTile(leading: const Icon(Icons.delete_forever, color: Colors.redAccent), title: const Text('Delete Permanently', style: TextStyle(color: Colors.redAccent)), onTap: () { Navigator.pop(context); _deleteFile(file); }),
         const SizedBox(height: 10),
       ]));

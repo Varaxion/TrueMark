@@ -1,41 +1,44 @@
-# TrueMark: The Professional Digital Integrity & Privacy Suite (v2.0.0)
+# TrueMark: Advanced Digital Forensics & Security Suite
+**Version 2.0.0**
 
-**TrueMark** is a high-performance, cross-platform security application designed to establish "Digital Truth." It provides users with a comprehensive suite of tools for digital signatures, military-grade encryption, data steganography, and forensic metadata sanitization.
+TrueMark is an academic-grade, comprehensive mobile security application engineered to deliver state-of-the-art cryptographic privacy, robust bit-level steganography, and forensic metadata manipulation. Developed to combat the rising tide of digital asset forgery, unauthorized deep-fakes, and privacy violations, TrueMark establishes a persistent, verifiable chain of custody for critical digital media while ensuring absolute confidentiality.
+
+## 🔐 Core Architecture
+
+TrueMark operates on a quad-module forensic architecture:
+
+### 1. TrueSign (Identity Verification)
+A sophisticated steganographic engine designed for establishing unforgeable ownership. 
+*   **Bit-Level Watermarking:** Embeds invisible contextual metadata directly into the Least Significant Bits (LSB) of an image's pixel matrix. 
+*   **Resiliency:** Modifies image encodings securely without degrading visual fidelity, surviving standard digital transmission.
+*   **Cryptographic Wrapping:** All injected steganographic payloads are AES-encrypted to ensure the signature cannot be tampered with or intercepted.
+
+### 2. TrueLock (Cryptographic Encapsulation)
+The privacy and asset concealment mechanism.
+*   **V9 Binary Engine:** Bypasses arbitrary platform channel constraints by operating purely inside the native Dart memory heap, utilizing AES-256 (CBC mode) with PKCS7 compliant padding.
+*   **Absolute Encapsulation:** Transforms raw source files into unreadable `.tmk` forensic blocks, stripping visible headers and obscuring file type until a valid decryption key restores the precise bitstream.
+*   **Legacy Fallback:** Designed for academic durability, seamlessly backward-compatible with historic (V1 `TMK01`) secure blocks.
+
+### 3. TrueHide (Covert Communication)
+Built for covert operations and secure physical-layer communication.
+*   **Silent Embedding:** Allows the user to hide secondary files entirely inside native media files (e.g., hiding a text document inside a photograph).
+*   **Zero-Knowledge Revelation:** Only operators possessing the exact 256-bit derived key can detect, let alone extract, the hidden payload.
+
+### 4. TrueMeta (Exif Sanitization)
+An operational security tool designed to neutralize metadata leakage.
+*   **Forensic Scrubbing:** Identifies and purges latent geographical, timestamp, and device-camera signatures embedded inside image encodings.
+*   **Chain of Custody UI:** Provides immediate, human-readable insight into the forensic fingerprint of any media file before sharing.
+
+## 🗃️ TrueVault Secure Sandbox
+All outputs flow seamlessly into **TrueVault**, an isolated, robust file explorer constrained safely within the Android application's `Documents` directory. 
+*   Bypasses external Android Storage Access Framework (SAF) indexer bugs.
+*   Maintains a strict, auditable forensic naming taxonomy for an unbroken paper trail: `[OriginalName]_[Feature]_[Operation]_[Timestamp].[Ext]`
+
+## 📦 Technical Specifications
+- **Framework:** Flutter (Dart)
+- **Encryption Topology:** AES-256 (CBC) with explicit PKCS7 Padding (`encrypt` package)
+- **Hash Derivation:** SHA-256 synchronized parity across modules
+- **Database:** Firebase Firestore (Registry Sync)
 
 ---
-
-## 🚀 Feature Highlights
-
--   **TrueSign**: Embed invisible, encrypted digital signatures into images and PDFs. Verify creator identity and content integrity via a secure registry.
--   **TrueLock**: Military-grade AES-256-GCM encryption for universal file protection (.tmk wrapper). Uses PBKDF2 for high-entropy key derivation.
--   **TrueHide**: Advanced Least Significant Bit (LSB) steganography to conceal secret binary/text data within carrier images.
--   **TrueMeta**: Rapid forensic scans to extract and recursively purge identifying metadata from images, MP3s, and documents.
--   **TrueVault**: A sandboxed, PIN-protected environment for internal file management, isolated from public storage.
-
-## 🛠️ Technical Methodology
-
-| Methodology | Purpose | Technical Specification |
-| :--- | :--- | :--- |
-| **Cryptography** | Confidentiality & Authenticity | AES-256-GCM + PBKDF2 with SHA-256 |
-| **Steganography** | Data Hiding | LSB Pixel Matrix Substitution (RGBA) |
-| **Integrity** | Tamper Detection | SHA-256 Hashing |
-| **Identification** | Ownership Proof | Firestore Digital Asset Registry |
-
-## 💻 Tech Stack
-
--   **Language**: Dart 3.8.1+
--   **Framework**: Flutter
--   **Backend**: Firebase (Auth, Cloud Firestore)
--   **Cryptographic Core**: encrypt, pointycastle, crypto
--   **System Access**: path_provider, file_picker, share_plus
-
-## 🔮 Future Roadmap
-
--   **AI Analysis**: TF-Lite based Deepfake detection for unverified media.
--   **Blockchain Layer**: Moving the signature registry to a decentralized, immutable ledger.
--   **Biometrics**: Native FaceID and Fingerprint integration for vault access.
--   **Extension Ecosystem**: Dedicated browser extensions for instant on-web verification.
-
----
-
-**© 2026 TrueMark Security Labs. Engineered for Digital Truth.**
+© 2026 TrueMark. Engineered for Digital Truth.

@@ -5,11 +5,13 @@ import '../utils/constants.dart';
 class VaultLoadButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final String label;
+  final Color? color;
 
   const VaultLoadButton({
     super.key,
     required this.onPressed,
     this.label = 'Import from TrueVault',
+    this.color,
   });
 
   @override
@@ -21,7 +23,7 @@ class VaultLoadButton extends StatelessWidget {
         icon: const Icon(kTrueVaultIcon, size: 20),
         label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: kVaultPrimary,
+          backgroundColor: color ?? kVaultPrimary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -36,11 +38,13 @@ class VaultLoadButton extends StatelessWidget {
 class VaultSaveButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final String label;
+  final Color? color;
 
   const VaultSaveButton({
     super.key,
     required this.onPressed,
     this.label = 'Save in TrueVault',
+    this.color,
   });
 
   @override
@@ -52,7 +56,7 @@ class VaultSaveButton extends StatelessWidget {
         icon: const Icon(kTrueVaultIcon, size: 20),
         label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: kVaultPrimary,
+          backgroundColor: color ?? kVaultPrimary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -102,32 +102,57 @@ class _TrueMetaScreenState extends State<TrueMetaScreen> with SingleTickerProvid
   Future<void> _purgeMetadata() async {
     if (_stripFile == null) return;
     final ext = p.extension(_stripFile!.path).toLowerCase();
+    
+    // Supported formats for bitstream stripping
     if (!['.jpg', '.jpeg', '.png'].contains(ext)) {
-      showToast("Strip only supports JPG/PNG images.");
+      showToast("Forensic Strip only supports JPG/PNG media.", backgroundColor: Colors.amber);
       return;
     }
 
     setState(() => _isPurging = true);
     try {
+      showToast("Analyzing Bitstream...", backgroundColor: kColorTrueMeta, duration: const Duration(seconds: 1));
+      
       final bytes = await _stripFile!.readAsBytes();
+      // This decodes the pixel data
       final image = img.decodeImage(bytes);
-      if (image == null) throw Exception("Failed to decode asset.");
+      
+      if (image == null) {
+        throw "Asset Decode Failed. File may be corrupted or unsupported.";
+      }
+
+      // EXPLICITLY WIPE ALL INTERNALLY PURGED METADATA
+      image.exif = img.ExifData(); // Clear EXIF
+      image.textData = null; // Clear Text Data (PNG/etc)
+
+      showToast("Sanitizing Headers...", backgroundColor: kColorTrueMeta, duration: const Duration(seconds: 1));
 
       List<int> outBytes;
-      if (ext == '.png') outBytes = img.encodePng(image);
-      else outBytes = img.encodeJpg(image, quality: 95);
+      if (ext == '.png') {
+        outBytes = img.encodePng(image);
+      } else {
+        outBytes = img.encodeJpg(image, quality: 95);
+      }
 
       final tempDir = await getTemporaryDirectory();
       final originalBase = p.basenameWithoutExtension(_stripFile!.path);
-      final outPath = '${tempDir.path}/${originalBase}_TrueMeta_${DateTime.now().millisecondsSinceEpoch}${p.extension(_stripFile!.path)}';
+      // Applying mandatory naming taxonomy: [OriginalName]_[Feature]_[Operation]_[Timestamp]
+      final outPath = '${tempDir.path}/${originalBase}_TrueMeta_Strip_${DateTime.now().millisecondsSinceEpoch}$ext';
+      
       final outFile = File(outPath);
       await outFile.writeAsBytes(outBytes);
 
-      setState(() { _purgedFilePath = outPath; _isPurging = false; });
+      if (mounted) {
+        setState(() { 
+          _purgedFilePath = outPath; 
+          _isPurging = false; 
+        });
+      }
       showToast("Metadata Footprint Cleared", backgroundColor: kColorTrueMeta);
     } catch (e) {
-      setState(() => _isPurging = false);
-      showToast("Purge Failed: $e", backgroundColor: Colors.red);
+      if (mounted) setState(() => _isPurging = false);
+      showToast("Purge Aborted: $e", backgroundColor: Colors.red, duration: const Duration(seconds: 3));
+      print("TrueMeta Error: $e");
     }
   }
 
@@ -278,9 +303,9 @@ class _TrueMetaScreenState extends State<TrueMetaScreen> with SingleTickerProvid
            _buildGlassContainer(isDark, child: Column(children: [
              const Text("Metadata Footprint Cleared", style: TextStyle(color: kColorTrueMeta, fontWeight: FontWeight.bold, fontSize: 16)),
              const SizedBox(height: 16),
-             SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => Share.shareXFiles([XFile(_purgedFilePath!)], text: 'Cleaned Media'), icon: const Icon(Icons.share), label: const Text("Share/Save"), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
+             SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => Share.shareXFiles([XFile(_purgedFilePath!)], text: 'Cleaned Media'), icon: const Icon(Icons.share), label: const Text("Share/Save"), style: ElevatedButton.styleFrom(backgroundColor: kColorTrueMeta, foregroundColor: Colors.black87, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
              const SizedBox(height: 12),
-             SizedBox(width: double.infinity, height: 50, child: VaultSaveButton(onPressed: () => _saveToVault(_purgedFilePath!))),
+             SizedBox(width: double.infinity, height: 50, child: VaultSaveButton(color: kColorTrueMeta, onPressed: () => _saveToVault(_purgedFilePath!))),
            ])),
         ],
       ]),

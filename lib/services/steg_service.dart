@@ -27,8 +27,16 @@ class StegService {
     required File outputFile,
   }) async {
     final bytes = await inputFile.readAsBytes();
-    final src = img.decodeImage(bytes);
+    img.Image? src = img.decodeImage(bytes);
     if (src == null) throw Exception('Unsupported image format.');
+
+    // PREVENT DART VM OOM CRASHES: Constrain large camera resolutions to 1080p
+    // before bit-level steganography to prevent 0-byte cache dropouts during TrueLock encryption mapping.
+    if (src.width > 1080 || src.height > 1080) {
+      src = src.width > src.height 
+          ? img.copyResize(src, width: 1080)
+          : img.copyResize(src, height: 1080);
+    }
 
     final key = _makeKeyFromPassword(password);
     final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));

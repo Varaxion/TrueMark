@@ -74,6 +74,10 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
       if (result != null && result.files.single.path != null) picked = File(result.files.single.path!);
     }
     if (picked != null) {
+      if (!isEncrypt && p.extension(picked.path).toLowerCase() != '.tmk') {
+        showToast("Select a .tmk encrypted wrapper", backgroundColor: Colors.amber);
+        return;
+      }
       setState(() {
         if (isEncrypt) { _fileToEncrypt = picked; _encryptedFilePath = null; }
         else { _fileToDecrypt = picked; _decryptedFilePath = null; }
@@ -89,12 +93,31 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
     setState(() => _encrypting = true);
     try {
       final encryptedFile = await _vaultService.encryptFile(_fileToEncrypt!, pswd);
-      if (mounted) setState(() { _encryptedFilePath = encryptedFile.path; _encrypting = false; });
+      
+      // Auto-save to vault safely bypassing Android SAF limitations
+      await _saveToVaultSilent(encryptedFile.path);
+
+      if (mounted) setState(() { 
+        _encryptedFilePath = encryptedFile.path; 
+        _encrypting = false; 
+        // Auto-load it into the decrypt tab to bypass FilePicker ghost bugs!
+        _fileToDecrypt = encryptedFile;
+      });
       showToast("Vault Sealed Successfully", backgroundColor: kColorTrueLock);
     } catch (e) {
       setState(() => _encrypting = false);
       showToast("Encryption Failed: $e", backgroundColor: Colors.red);
     }
+  }
+
+  Future<void> _saveToVaultSilent(String path) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final root = await getApplicationDocumentsDirectory();
+    final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
+    if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
+    final fileToSave = File(path);
+    await fileToSave.copy('${vaultDir.path}/${p.basename(fileToSave.path)}');
   }
 
   Future<void> _performDecryption() async {
@@ -106,7 +129,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
       showToast("Vault Unlocked Successfully", backgroundColor: kColorTrueLock);
     } catch (e) {
       setState(() => _decrypting = false);
-      showToast("Decryption Failed! Invalid Key?", backgroundColor: Colors.red);
+      showToast("Decryption Failed: $e", backgroundColor: Colors.red, duration: const Duration(seconds: 5));
     }
   }
 
@@ -300,13 +323,19 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
   }
 
   Widget _buildResultCard(String path, String msg, bool isDark, {bool isUnlock = false}) {
+     final file = File(path);
      return Padding(
        padding: const EdgeInsets.only(top: 24),
        child: _buildGlassContainer(isDark, child: Column(children: [
          Text(msg, style: TextStyle(color: kColorTrueLock, fontWeight: FontWeight.bold, fontSize: 16)),
          const SizedBox(height: 16),
-         SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => Share.shareXFiles([XFile(path)]), icon: const Icon(Icons.share), label: const Text("Share/Save"), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
-         if (!isUnlock) ...[const SizedBox(height: 12), SizedBox(width: double.infinity, height: 50, child: VaultSaveButton(onPressed: () => _saveToVault(path)))]
+         if (isUnlock) ...[
+           _buildFilePreview(file, Icons.lock_open_rounded, isDark, () {}),
+           const SizedBox(height: 16),
+         ],
+         SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => Share.shareXFiles([XFile(path)]), icon: const Icon(Icons.share), label: const Text("Share/Save"), style: ElevatedButton.styleFrom(backgroundColor: kColorTrueLock, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
+         const SizedBox(height: 12),
+         SizedBox(width: double.infinity, height: 50, child: VaultSaveButton(color: kColorTrueLock, onPressed: () => _saveToVault(path)))
        ])),
      );
   }
@@ -351,7 +380,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
-      appBar: AppBar(iconTheme: IconThemeData(color: _mainText(isDark)), title: Text("TrueLock", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)), backgroundColor: Colors.transparent, elevation: 0, foregroundColor: _mainText(isDark)),
+      appBar: AppBar(iconTheme: IconThemeData(color: _mainText(isDark)), title: Text("TrueLock Pro", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)), backgroundColor: Colors.transparent, elevation: 0, foregroundColor: _mainText(isDark)),
       body: Stack(
         children: [
           Container(

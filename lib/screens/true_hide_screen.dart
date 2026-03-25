@@ -266,8 +266,7 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
           _buildGlassContainer(isDark, child: Column(children: [Text("Plaintext Extracted", style: TextStyle(color: _iconColor(isDark), fontSize: 11, fontWeight: FontWeight.bold)), const SizedBox(height: 12), Text(_revealedText!, style: TextStyle(color: _mainText(isDark), fontSize: 16, fontWeight: FontWeight.bold), textAlign: TextAlign.center)]))
         ],
         if (_revealedFilePath != null) ...[
-          const SizedBox(height: 24),
-          SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => Share.shareXFiles([XFile(_revealedFilePath!)]), icon: const Icon(Icons.share), label: const Text("Share/Save"), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
+          _buildResultCard(_revealedFilePath!, "Byte-stream Extracted & Decrypted", isDark),
         ],
       ]),
     );
@@ -290,6 +289,21 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
               Text(p.basename(f.path), style: TextStyle(color: _subText(isDark), fontSize: 11), overflow: TextOverflow.ellipsis),
               Text("Carrier must be an image file", style: TextStyle(color: Colors.redAccent.withOpacity(0.8), fontSize: 10)),
             ])),
+    );
+  }
+
+  Widget _buildFileHeadsUp(File f, bool isDark) {
+    return Container(
+      height: 100, width: double.infinity,
+      decoration: BoxDecoration(color: _glassBg(isDark), borderRadius: BorderRadius.circular(20), border: Border.all(color: _glassBorder(isDark))),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.insert_drive_file_rounded, color: _iconColor(isDark), size: 30),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(p.basename(f.path), style: TextStyle(color: _mainText(isDark), fontSize: 11, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+        ),
+      ]),
     );
   }
 
@@ -353,14 +367,17 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
   }
 
   Widget _buildResultCard(String path, String msg, bool isDark) {
+     final file = File(path);
      return Padding(
        padding: const EdgeInsets.only(top: 24),
        child: _buildGlassContainer(isDark, child: Column(children: [
          Text(msg, style: TextStyle(color: _iconColor(isDark), fontWeight: FontWeight.bold, fontSize: 16)),
          const SizedBox(height: 16),
-         SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => Share.shareXFiles([XFile(path)]), icon: const Icon(Icons.share), label: const Text("Share/Save"), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
+         _buildFileHeadsUp(file, isDark),
+         const SizedBox(height: 16),
+         SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => Share.shareXFiles([XFile(path)]), icon: const Icon(Icons.share), label: const Text("Share/Save"), style: ElevatedButton.styleFrom(backgroundColor: kColorTrueHide, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
          const SizedBox(height: 12),
-         SizedBox(width: double.infinity, height: 50, child: VaultSaveButton(onPressed: () => _saveToVault(path))),
+         SizedBox(width: double.infinity, height: 50, child: VaultSaveButton(color: kColorTrueHide, onPressed: () => _saveToVault(path))),
        ])),
      );
   }

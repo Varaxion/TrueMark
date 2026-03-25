@@ -8,6 +8,7 @@ import 'screens/signup_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'screens/home_screen.dart';
+import 'package:oktoast/oktoast.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -92,30 +93,32 @@ class TrueMarkApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'TrueMark',
-      themeMode: ThemeMode.dark,
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.indigo,
-        scaffoldBackgroundColor: Colors.black,
-        fontFamily: 'Montserrat',
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
+    return OKToast(
+      child: MaterialApp(
+        title: 'TrueMark',
+        themeMode: ThemeMode.dark,
+        darkTheme: ThemeData(
           brightness: Brightness.dark,
-          surface: Colors.black,
-          onSurface: Colors.white,
+          primarySwatch: Colors.indigo,
+          scaffoldBackgroundColor: Colors.black,
+          fontFamily: 'Montserrat',
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.indigo,
+            brightness: Brightness.dark,
+            surface: Colors.black,
+            onSurface: Colors.white,
+          ),
         ),
+        debugShowCheckedModeBanner: false,
+        home: const AuthWrapper(),
+        routes: {
+          '/login': (_) => const LoginScreen(),
+          '/signup': (_) => const SignupScreen(),
+          '/setup': (_) => const ProfileSetupScreen(),
+          '/home': (_) => const HomeScreen(),
+        },
       ),
-      debugShowCheckedModeBanner: false,
-      home: const AuthWrapper(),
-      routes: {
-        '/login': (_) => const LoginScreen(),
-        '/signup': (_) => const SignupScreen(),
-        '/setup': (_) => const ProfileSetupScreen(),
-        '/home': (_) => const HomeScreen(),
-      },
     );
   }
 }
