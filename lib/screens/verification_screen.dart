@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../services/steg_service.dart';
 import '../services/firestore_service.dart';
@@ -10,14 +9,13 @@ import '../utils/constants.dart';
 import '../models/ownership_record.dart';
 
 class VerificationScreen extends StatefulWidget {
-  const VerificationScreen({Key? key}) : super(key: key);
+  const VerificationScreen({super.key});
 
   @override
   State<VerificationScreen> createState() => _VerificationScreenState();
 }
 
 class _VerificationScreenState extends State<VerificationScreen> {
-  final ImagePicker _picker = ImagePicker();
   File? _imageFile;
   bool _scanning = false;
   
@@ -234,7 +232,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
           const Center(
             child: Text(
               'AUTHENTIC IMAGE',
-              style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: 1),
+              style: TextStyle(color: Colors.teal, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: 1),
             ),
           ),
           const Divider(height: 30),

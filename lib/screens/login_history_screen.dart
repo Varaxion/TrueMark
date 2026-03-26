@@ -9,7 +9,6 @@ class LoginHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const isDark = true;
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,

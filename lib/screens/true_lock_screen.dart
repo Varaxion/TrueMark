@@ -63,8 +63,9 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
     File? picked;
     if (fromVault) {
       final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const TrueVaultScreen(isPicker: true, pickImagesOnly: false)));
-      if (result != null && result is String) picked = File(result);
-      else if (result != null && result is File) picked = result;
+      if (result != null && result is String) {
+        picked = File(result);
+      } else if (result != null && result is File) picked = result;
     } else {
       final result = await FilePicker.platform.pickFiles(
         type: isEncrypt ? FileType.any : FileType.custom,
@@ -93,31 +94,18 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
     setState(() => _encrypting = true);
     try {
       final encryptedFile = await _vaultService.encryptFile(_fileToEncrypt!, pswd);
-      
-      // Auto-save to vault safely bypassing Android SAF limitations
-      await _saveToVaultSilent(encryptedFile.path);
 
-      if (mounted) setState(() { 
+      if (mounted) {
+        setState(() { 
         _encryptedFilePath = encryptedFile.path; 
         _encrypting = false; 
-        // Auto-load it into the decrypt tab to bypass FilePicker ghost bugs!
-        _fileToDecrypt = encryptedFile;
       });
-      showToast("Vault Sealed Successfully", backgroundColor: kColorTrueLock);
+      }
+      showToast("Asset Locked Successfully", backgroundColor: kColorTrueLock);
     } catch (e) {
       setState(() => _encrypting = false);
-      showToast("Encryption Failed: $e", backgroundColor: Colors.red);
+      showToast("Lock Failed: $e", backgroundColor: Colors.red);
     }
-  }
-
-  Future<void> _saveToVaultSilent(String path) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final root = await getApplicationDocumentsDirectory();
-    final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
-    if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
-    final fileToSave = File(path);
-    await fileToSave.copy('${vaultDir.path}/${p.basename(fileToSave.path)}');
   }
 
   Future<void> _performDecryption() async {
@@ -126,10 +114,10 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
     try {
       final decryptedFile = await _vaultService.decryptFile(_fileToDecrypt!, _decryptPasswordController.text);
       if (mounted) setState(() { _decryptedFilePath = decryptedFile.path; _decrypting = false; });
-      showToast("Vault Unlocked Successfully", backgroundColor: kColorTrueLock);
+      showToast("Asset Unlocked Successfully", backgroundColor: kColorTrueLock);
     } catch (e) {
       setState(() => _decrypting = false);
-      showToast("Decryption Failed: $e", backgroundColor: Colors.red, duration: const Duration(seconds: 5));
+      showToast("Unlock Failed: $e", backgroundColor: Colors.red, duration: const Duration(seconds: 5));
     }
   }
 
@@ -140,8 +128,36 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
     final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
     if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
     final fileToSave = File(path);
-    await fileToSave.copy('${vaultDir.path}/${p.basename(fileToSave.path)}');
-    showToast("Secured in TrueVault!", backgroundColor: kColorTrueLock);
+    if (!await fileToSave.exists()) {
+      showToast("Save Failed: Source file not found.", backgroundColor: Colors.red);
+      return;
+    }
+    final destPath = '${vaultDir.path}/${p.basename(fileToSave.path)}';
+    try {
+      await _writeFileAtomically(fileToSave, destPath);
+      final savedLen = await File(destPath).length();
+      if (savedLen <= 0) {
+        await File(destPath).delete();
+        throw "Saved file is empty.";
+      }
+      showToast("Secured in TrueVault!", backgroundColor: kColorTrueLock);
+    } catch (e) {
+      showToast("Save Failed: $e", backgroundColor: Colors.red);
+    }
+  }
+
+  Future<void> _writeFileAtomically(File source, String destPath) async {
+    final tempFile = File('$destPath.part');
+    if (await tempFile.exists()) {
+      await tempFile.delete();
+    }
+    final bytes = await source.readAsBytes();
+    await tempFile.writeAsBytes(bytes, flush: true);
+    final destFile = File(destPath);
+    if (await destFile.exists()) {
+      await destFile.delete();
+    }
+    await tempFile.rename(destPath);
   }
 
   // --- THEME HELPERS ---
@@ -197,7 +213,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
         const SizedBox(height: 16),
         Text("Lock Asset", style: GoogleFonts.outfit(color: _mainText(isDark), fontSize: 24, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        Text("Lock any digital asset with AES-256-GCM authenticated encryption.", textAlign: TextAlign.center, style: TextStyle(color: _subText(isDark), fontSize: 13)),
+        Text("Lock any digital asset with AES-256-CBC authenticated encryption.", textAlign: TextAlign.center, style: TextStyle(color: _subText(isDark), fontSize: 13)),
         const SizedBox(height: 32),
         _buildSourcePicker(isEncrypt: true, isDark: isDark),
         const SizedBox(height: 24),
@@ -361,9 +377,9 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
         const SizedBox(height: 16),
         Text("About TrueLock", style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: _mainText(isDark))),
         const SizedBox(height: 12),
-        Text("TrueLock ensures absolute privacy by encapsulating any file format into an AES-256-GCM authenticated wrapper. We implement zero-knowledge security; your original filename and contents are hidden until unlocked with your personal master key.", style: TextStyle(color: _subText(isDark), height: 1.5)),
+        Text("TrueLock ensures absolute privacy by encapsulating any file format into an AES-256-CBC authenticated wrapper. We implement zero-knowledge security; your original filename and contents are hidden until unlocked with your personal master key.", style: TextStyle(color: _subText(isDark), height: 1.5)),
         const SizedBox(height: 20),
-        _featurePoint("Galois/Counter Mode", "Authenticated encryption for integrity verification.", Icons.security_rounded, isDark),
+        _featurePoint("Cipher Block Chaining", "Authenticated encryption for integrity verification.", Icons.security_rounded, isDark),
         _featurePoint("Key Stretching", "PBKDF2 derivation with high iteration counts.", Icons.password_rounded, isDark),
         _featurePoint("Format Cloaking", "Wraps files in .tmk format to hide original signatures.", Icons.hide_image_rounded, isDark),
       ]),
@@ -380,7 +396,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
-      appBar: AppBar(iconTheme: IconThemeData(color: _mainText(isDark)), title: Text("TrueLock Pro", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)), backgroundColor: Colors.transparent, elevation: 0, foregroundColor: _mainText(isDark)),
+      appBar: AppBar(iconTheme: IconThemeData(color: _mainText(isDark)), title: Text("TrueLock", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)), backgroundColor: Colors.transparent, elevation: 0, foregroundColor: _mainText(isDark)),
       body: Stack(
         children: [
           Container(

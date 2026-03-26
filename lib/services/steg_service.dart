@@ -18,6 +18,72 @@ class StegService {
 
   static encrypt.IV _makeZeroIV() => encrypt.IV(Uint8List(16)); 
 
+  /// Capacity estimation for a given carrier image.
+  /// Accounts for internal resize to 1080p to match embed behavior.
+  static Future<StegCapacity?> estimateCapacity({required File inputFile}) async {
+    final bytes = await inputFile.readAsBytes();
+    final original = img.decodeImage(bytes);
+    if (original == null) return null;
+
+    int effectiveWidth = original.width;
+    int effectiveHeight = original.height;
+    bool resized = false;
+
+    if (original.width > 1080 || original.height > 1080) {
+      resized = true;
+      if (original.width > original.height) {
+        effectiveWidth = 1080;
+        effectiveHeight = (original.height * (1080 / original.width)).round();
+      } else {
+        effectiveHeight = 1080;
+        effectiveWidth = (original.width * (1080 / original.height)).round();
+      }
+    }
+
+    final capacityBits = effectiveWidth * effectiveHeight; // 1 bit per pixel
+    final capacityBytes = capacityBits ~/ 8;
+
+    // Payload format: magic(2) + len(4) + ciphertext + crc(4)
+    final maxCipherBytes = capacityBytes > 10 ? capacityBytes - 10 : 0;
+    final maxCipherBlocks = maxCipherBytes ~/ 16;
+    final maxPlaintextBytes = maxCipherBlocks > 0 ? (maxCipherBlocks * 16) - 1 : 0;
+    final maxFileBytes = _maxRawFileBytesForPlaintext(maxPlaintextBytes);
+
+    return StegCapacity(
+      originalWidth: original.width,
+      originalHeight: original.height,
+      effectiveWidth: effectiveWidth,
+      effectiveHeight: effectiveHeight,
+      resized: resized,
+      capacityBits: capacityBits,
+      capacityBytes: capacityBytes,
+      maxCipherBytes: maxCipherBytes,
+      maxPlaintextBytes: maxPlaintextBytes,
+      maxFileBytes: maxFileBytes,
+    );
+  }
+
+  static int _base64Length(int rawBytes) => ((rawBytes + 2) ~/ 3) * 4;
+
+  // Plaintext format: "FILE:" + base64(payload)
+  static int _maxRawFileBytesForPlaintext(int maxPlaintextBytes) {
+    if (maxPlaintextBytes <= 5) return 0;
+    int low = 0;
+    int high = ((maxPlaintextBytes - 5) * 3 ~/ 4) + 3;
+    int best = 0;
+    while (low <= high) {
+      final mid = (low + high) >> 1;
+      final needed = 5 + _base64Length(mid);
+      if (needed <= maxPlaintextBytes) {
+        best = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    return best;
+  }
+
   /// Embed plaintext into image bytes using LSB.
   /// Optimized for image 4.x using the Pixel iterator.
   static Future<File> embedStringInImage({
@@ -57,8 +123,11 @@ class StegService {
       for (var b in data) {
         crc ^= b;
         for (var k = 0; k < 8; k++) {
-          if ((crc & 1) != 0) crc = (crc >> 1) ^ 0xEDB88320;
-          else crc = crc >> 1;
+          if ((crc & 1) != 0) {
+            crc = (crc >> 1) ^ 0xEDB88320;
+          } else {
+            crc = crc >> 1;
+          }
         }
       }
       return crc ^ 0xFFFFFFFF;
@@ -72,7 +141,9 @@ class StegService {
     final payload = Uint8List.fromList(payloadBytes);
     final bits = <int>[];
     for (var byte in payload) {
-      for (var i = 7; i >= 0; i--) bits.add((byte >> i) & 1);
+      for (var i = 7; i >= 0; i--) {
+        bits.add((byte >> i) & 1);
+      }
     }
 
     if (bits.length > (src.width * src.height)) {
@@ -237,4 +308,30 @@ class StegService {
      }
      return false;
   }
+}
+
+class StegCapacity {
+  final int originalWidth;
+  final int originalHeight;
+  final int effectiveWidth;
+  final int effectiveHeight;
+  final bool resized;
+  final int capacityBits;
+  final int capacityBytes;
+  final int maxCipherBytes;
+  final int maxPlaintextBytes;
+  final int maxFileBytes;
+
+  const StegCapacity({
+    required this.originalWidth,
+    required this.originalHeight,
+    required this.effectiveWidth,
+    required this.effectiveHeight,
+    required this.resized,
+    required this.capacityBits,
+    required this.capacityBytes,
+    required this.maxCipherBytes,
+    required this.maxPlaintextBytes,
+    required this.maxFileBytes,
+  });
 }

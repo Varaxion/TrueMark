@@ -4,13 +4,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../widgets/vault_button.dart';
 import '../utils/constants.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -73,8 +70,11 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
     
     if (mounted) {
       setState(() {
-        if (existingPin == null) _vaultState = VaultState.setupPin;
-        else _vaultState = VaultState.enterPin;
+        if (existingPin == null) {
+          _vaultState = VaultState.setupPin;
+        } else {
+          _vaultState = VaultState.enterPin;
+        }
       });
     }
   }
@@ -162,7 +162,7 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
 
   Future<Directory> _getVaultDirectory() async {
     final root = await getApplicationDocumentsDirectory();
-    final vaultDir = Directory('${root.path}/TrueVault_${_userId}');
+    final vaultDir = Directory('${root.path}/TrueVault_$_userId');
     if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
     return vaultDir;
   }
@@ -324,7 +324,7 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
 
     Widget buildTmkIcon({double size = 40}) => Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.shield, color: kColorTrueLock, size: size), const SizedBox(height: 4), const Text("TMK", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.5))]);
 
-    void _onFileTapped(File file, bool isImage) {
+    void onFileTapped(File file, bool isImage) {
       if (widget.isPicker) {
         if (widget.pickImagesOnly && !isImage) { showToast("Images Only Required", backgroundColor: Colors.red); return; }
         Navigator.pop(context, file); 
@@ -332,9 +332,9 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
     }
 
     if (_isGridView) {
-      return GestureDetector(onTap: () => _onFileTapped(file, isImage), child: Container(decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8), border: Border.all(color: isTmk ? kColorTrueLock.withOpacity(0.5) : Colors.white24)), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: isImage ? Image.file(file, fit: BoxFit.cover) : isTmk ? Container(color: Colors.black45, child: buildTmkIcon()) : isVideo ? const Center(child: Icon(Icons.video_file, color: Colors.blueAccent, size: 40)) : isPdf ? const Center(child: Icon(Icons.picture_as_pdf, color: Colors.redAccent, size: 40)) : const Center(child: Icon(Icons.insert_drive_file, color: Colors.white54, size: 40)))));
+      return GestureDetector(onTap: () => onFileTapped(file, isImage), child: Container(decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8), border: Border.all(color: isTmk ? kColorTrueLock.withOpacity(0.5) : Colors.white24)), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: isImage ? Image.file(file, fit: BoxFit.cover) : isTmk ? Container(color: Colors.black45, child: buildTmkIcon()) : isVideo ? const Center(child: Icon(Icons.video_file, color: Colors.blueAccent, size: 40)) : isPdf ? const Center(child: Icon(Icons.picture_as_pdf, color: Colors.redAccent, size: 40)) : const Center(child: Icon(Icons.insert_drive_file, color: Colors.white54, size: 40)))));
     } else {
-      return Card(color: Colors.black45, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(side: BorderSide(color: isTmk ? kColorTrueLock.withOpacity(0.3) : Colors.white12), borderRadius: BorderRadius.circular(12)), child: ListTile(onTap: () => _onFileTapped(file, isImage), leading: Container(width: 50, height: 50, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: isImage ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(file, fit: BoxFit.cover)) : isTmk ? buildTmkIcon(size: 20) : isVideo ? const Icon(Icons.video_file, color: Colors.blueAccent) : isPdf ? const Icon(Icons.picture_as_pdf, color: Colors.redAccent) : const Icon(Icons.insert_drive_file, color: Colors.white54)), title: Text(p.basename(file.path), style: TextStyle(color: isTmk ? kColorTrueLock : Colors.white, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis), subtitle: Text("$dateStr  •  $sizeMb MB", style: const TextStyle(color: Colors.white60, fontSize: 11))));
+      return Card(color: Colors.black45, margin: const EdgeInsets.only(bottom: 8), shape: RoundedRectangleBorder(side: BorderSide(color: isTmk ? kColorTrueLock.withOpacity(0.3) : Colors.white12), borderRadius: BorderRadius.circular(12)), child: ListTile(onTap: () => onFileTapped(file, isImage), leading: Container(width: 50, height: 50, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: isImage ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(file, fit: BoxFit.cover)) : isTmk ? buildTmkIcon(size: 20) : isVideo ? const Icon(Icons.video_file, color: Colors.blueAccent) : isPdf ? const Icon(Icons.picture_as_pdf, color: Colors.redAccent) : const Icon(Icons.insert_drive_file, color: Colors.white54)), title: Text(p.basename(file.path), style: TextStyle(color: isTmk ? kColorTrueLock : Colors.white, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis), subtitle: Text("$dateStr  •  $sizeMb MB", style: const TextStyle(color: Colors.white60, fontSize: 11))));
     }
   }
 
@@ -380,7 +380,6 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const isDark = true;
     return PopScope(
       canPop: _vaultState == VaultState.enterPin || _vaultState == VaultState.unlocked,
       onPopInvokedWithResult: (didPop, result) async {
@@ -393,7 +392,7 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
       },
       child: Scaffold(
         body: Container(
-          decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: isDark ? [const Color(0xFF000000), const Color(0xFF001F24)] : [const Color(0xFF006064), const Color(0xFF00838F)])),
+          decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF000000), Color(0xFF001F24)])),
           child: SafeArea(child: Column(children: [
             Padding(padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0), child: Row(children: [
               IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () async {

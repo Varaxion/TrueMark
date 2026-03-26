@@ -1,8 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/constants.dart';
 import 'true_sign_screen.dart';
 import 'true_lock_screen.dart';
@@ -97,26 +95,6 @@ class _DashboardTab extends StatefulWidget {
 }
 
 class _DashboardTabState extends State<_DashboardTab> {
-  String? _userName;
-  String? _userEmail;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  Future<void> _loadUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      if (mounted) setState(() => _userEmail = user.email);
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      if (doc.exists && mounted) {
-        setState(() => _userName = doc.data()?['name'] as String?);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(

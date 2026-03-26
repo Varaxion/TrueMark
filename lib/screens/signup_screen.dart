@@ -2,8 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:oktoast/oktoast.dart';
-import 'login_screen.dart';
 import 'profile_setup_screen.dart';
 import '../utils/login_logger.dart';
 import '../widgets/custom_error_toast.dart';

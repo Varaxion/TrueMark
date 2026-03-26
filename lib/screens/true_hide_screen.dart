@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -35,6 +36,8 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
   bool _isEmbeddingText = true;
   bool _hiding = false;
   String? _hiddenFilePath;
+  StegCapacity? _carrierCapacity;
+  bool _capacityLoading = false;
 
   // Reveal State
   File? _imageToReveal;
@@ -76,6 +79,9 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
          if (isCarrier) { _carrierImage = picked; _hiddenFilePath = null; }
          else { _secretFile = picked; }
       });
+      if (isCarrier) {
+        await _updateCarrierCapacity();
+      }
     }
   }
 
@@ -95,6 +101,17 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
     final pswd = _hidePasswordController.text;
     if (_carrierImage == null || pswd.isEmpty) { showToast("Media/Key Required", backgroundColor: Colors.amber); return; }
     if (pswd.length < 8) { showToast("Key must be 8+ chars."); return; }
+    if (_carrierCapacity == null) {
+      await _updateCarrierCapacity();
+    }
+    if (_carrierCapacity == null) {
+      showToast("Carrier Decode Failed", backgroundColor: Colors.red);
+      return;
+    }
+    if (_carrierCapacity!.maxCipherBytes <= 0) {
+      showToast("Carrier too small for any payload", backgroundColor: Colors.red);
+      return;
+    }
     
     setState(() => _hiding = true);
     try {
@@ -105,16 +122,37 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
 
       if (_isEmbeddingText) {
         if (_secretText.isEmpty) throw Exception("Empty Secret String");
+        final payloadBytes = _utf8Len(_secretText);
+        if (!_fitsPlaintext(payloadBytes)) {
+          throw Exception("Payload exceeds capacity");
+        }
         result = await StegService.embedStringInImage(inputFile: _carrierImage!, plaintext: _secretText, password: pswd, outputFile: outFile);
       } else {
         if (_secretFile == null) throw Exception("Select Secret Binary");
+        final secretLen = await _secretFile!.length();
+        if (secretLen > _carrierCapacity!.maxFileBytes) {
+          throw Exception("Binary payload exceeds capacity");
+        }
         result = await StegService.embedFileInImage(carrierImage: _carrierImage!, secretFile: _secretFile!, password: pswd, outputFile: outFile);
       }
       setState(() { _hiddenFilePath = result.path; _hiding = false; });
       showToast("Data Effectively Concealed", backgroundColor: kColorTrueHide);
     } catch (e) {
       setState(() => _hiding = false);
-      showToast("Concealment Failed", backgroundColor: Colors.red);
+      showToast("Concealment Failed: $e", backgroundColor: Colors.red);
+    }
+  }
+
+  Future<void> _updateCarrierCapacity() async {
+    if (_carrierImage == null) return;
+    setState(() => _capacityLoading = true);
+    try {
+      final cap = await StegService.estimateCapacity(inputFile: _carrierImage!);
+      if (mounted) setState(() => _carrierCapacity = cap);
+    } catch (_) {
+      if (mounted) setState(() => _carrierCapacity = null);
+    } finally {
+      if (mounted) setState(() => _capacityLoading = false);
     }
   }
 
@@ -131,8 +169,11 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
             final originalBase = p.basenameWithoutExtension(_imageToReveal!.path);
             final outFile = File('${outDir.path}/${originalBase}_TrueHide_Reveal_${DateTime.now().millisecondsSinceEpoch}.bin');
             final success = await StegService.extractFileFromImage(carrierImage: _imageToReveal!, password: pswd, outputFilePath: outFile.path);
-            if (success) setState(() { _revealedFilePath = outFile.path; _revealing = false; });
-            else throw Exception();
+            if (success) {
+              setState(() { _revealedFilePath = outFile.path; _revealing = false; });
+            } else {
+              throw Exception();
+            }
          } else {
             setState(() { _revealedText = text; _revealing = false; });
          }
@@ -216,6 +257,8 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
         _buildSourcePicker(isCarrier: true, isDark: isDark),
         const SizedBox(height: 12),
         _buildImagePreview(_carrierImage, isDark),
+        const SizedBox(height: 10),
+        _buildCapacityInfo(isDark),
 
         const SizedBox(height: 24),
         _sectionTitle("2. Payload Definition", isDark),
@@ -228,6 +271,8 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
           const SizedBox(height: 12),
           _buildFileNameBox(_secretFile, "Select Secret File", isDark),
         ],
+        const SizedBox(height: 8),
+        _buildPayloadInfo(isDark),
 
         const SizedBox(height: 24),
         _sectionTitle("3. Password", isDark),
@@ -292,6 +337,51 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
     );
   }
 
+  Widget _buildCapacityInfo(bool isDark) {
+    if (_carrierImage == null) return const SizedBox.shrink();
+    if (_capacityLoading) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Text("Calculating capacity...", style: TextStyle(color: _subText(isDark), fontSize: 11)),
+      );
+    }
+    if (_carrierCapacity == null) {
+      return Text("Capacity unavailable", style: TextStyle(color: Colors.redAccent, fontSize: 11));
+    }
+    final cap = _carrierCapacity!;
+    final sizeText = "${cap.effectiveWidth}×${cap.effectiveHeight}";
+    final resizedNote = cap.resized ? " (resized)" : "";
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Capacity: ${_formatBytes(cap.maxPlaintextBytes)} text / ${_formatBytes(cap.maxFileBytes)} file", style: TextStyle(color: _subText(isDark), fontSize: 11)),
+        Text("Carrier: $sizeText$resizedNote", style: TextStyle(color: _hintText(isDark), fontSize: 10)),
+      ],
+    );
+  }
+
+  Widget _buildPayloadInfo(bool isDark) {
+    if (_carrierCapacity == null) return const SizedBox.shrink();
+    if (_isEmbeddingText) {
+      final payloadBytes = _utf8Len(_secretText);
+      return Text(
+        "Payload: ${_formatBytes(payloadBytes)} / ${_formatBytes(_carrierCapacity!.maxPlaintextBytes)}",
+        style: TextStyle(color: _hintText(isDark), fontSize: 10),
+      );
+    }
+    if (_secretFile == null) return const SizedBox.shrink();
+    return FutureBuilder<int>(
+      future: _secretFile!.length(),
+      builder: (context, snapshot) {
+        final size = snapshot.data ?? 0;
+        return Text(
+          "Payload: ${_formatBytes(size)} / ${_formatBytes(_carrierCapacity!.maxFileBytes)}",
+          style: TextStyle(color: _hintText(isDark), fontSize: 10),
+        );
+      },
+    );
+  }
+
   Widget _buildFileHeadsUp(File f, bool isDark) {
     return Container(
       height: 100, width: double.infinity,
@@ -318,6 +408,24 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
         if (f != null) GestureDetector(onTap: () => setState(() => _secretFile = null), child: Icon(Icons.close, color: _subText(isDark), size: 18)),
       ]),
     );
+  }
+
+  int _utf8Len(String text) => text.isEmpty ? 0 : utf8.encode(text).length;
+
+  bool _fitsPlaintext(int plaintextBytes) {
+    final cap = _carrierCapacity;
+    if (cap == null) return false;
+    if (cap.maxCipherBytes <= 0) return false;
+    final cipherBytes = ((plaintextBytes ~/ 16) + 1) * 16;
+    return cipherBytes <= cap.maxCipherBytes;
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return "$bytes B";
+    final kb = bytes / 1024;
+    if (kb < 1024) return "${kb.toStringAsFixed(2)} KB";
+    final mb = kb / 1024;
+    return "${mb.toStringAsFixed(2)} MB";
   }
 
   Widget _sectionTitle(String t, bool isDark) {

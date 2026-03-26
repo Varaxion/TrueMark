@@ -89,7 +89,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   Future<void> _loadProfile() async {
     if (_user == null) return;
-    final doc = await FirebaseFirestore.instance.collection('users').doc(_user!.uid).get();
+    final doc = await FirebaseFirestore.instance.collection('users').doc(_user.uid).get();
     if (doc.exists && mounted) {
       setState(() {
         _currentName = doc.data()?['name'] as String?;
@@ -100,7 +100,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       });
     } else {
        setState(() {
-         _currentName = _user?.displayName;
+         _currentName = _user.displayName;
          _nameController.text = _currentName ?? '';
        });
     }
@@ -123,13 +123,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     setState(() => _saving = true);
     try {
       if (_user != null) {
-         try { await _user!.updateDisplayName(newName).timeout(const Duration(seconds: 3)); } catch (_) {}
+         try { await _user.updateDisplayName(newName).timeout(const Duration(seconds: 3)); } catch (_) {}
       }
 
       await FirebaseFirestore.instance.collection('users').doc(_user!.uid).set({
         'name': newName,
         'username': newUsername,
-        'email': _user!.email,
+        'email': _user.email,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true)).timeout(const Duration(seconds: 5));
       

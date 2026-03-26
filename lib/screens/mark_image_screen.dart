@@ -2,7 +2,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import '../services/image_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -11,29 +10,24 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_rest_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crypto/crypto.dart';
-import 'dart:typed_data';
 import 'package:uuid/uuid.dart';
 import '../models/ownership_record.dart';
 import '../utils/constants.dart';
-import '../utils/admin_config.dart';
 
 class MarkImageScreen extends StatefulWidget {
-  const MarkImageScreen({Key? key}) : super(key: key);
+  const MarkImageScreen({super.key});
 
   @override
   State<MarkImageScreen> createState() => _MarkImageScreenState();
 }
 
 class _MarkImageScreenState extends State<MarkImageScreen> {
-  final ImagePicker _picker = ImagePicker();
   XFile? _pickedFile;
   bool _loading = false;
   String? _error;
 
   // numbering fields
   String? _baseNumber;
-  int _imageCount = 0;
-  String? _lastGeneratedId;
   bool _processing = false;
   bool _processedSuccess = false;
   String? _processedLocalPath;
@@ -54,7 +48,6 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
       final meta = await ImageService.ensureUserMeta(allowAnonymousFallback: false);
       setState(() {
         _baseNumber = meta['baseNumber'] as String?;
-        _imageCount = meta['imageCount'] as int? ?? 0;
       });
     } catch (e) {
       setState(() {
@@ -84,43 +77,11 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
       }
       
       final path = result.files.single.path!;
-      final generatedId = await ImageService.generateNextImageId(allowAnonymousFallback: false);
-
       setState(() {
         _pickedFile = XFile(path); // Wrap in XFile to keep compatible with Image widget logic
-        _lastGeneratedId = generatedId;
-        if (_baseNumber != null && generatedId.startsWith(_baseNumber!)) {
-           // simple count update logic
-           _imageCount++; 
-        }
       });
     } catch (e) {
       setState(() => _error = 'Failed to pick image: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _pickFromCamera() async {
-     setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final XFile? file = await _picker.pickImage(source: ImageSource.camera, imageQuality: 90);
-      if (file == null) {
-        setState(() => _loading = false);
-        return;
-      }
-      final generatedId = await ImageService.generateNextImageId(allowAnonymousFallback: false);
-
-      setState(() {
-        _pickedFile = file;
-        _lastGeneratedId = generatedId;
-        // count update logic
-      });
-    } catch (e) {
-      setState(() => _error = 'Failed to capture image: $e');
     } finally {
       setState(() => _loading = false);
     }
@@ -152,28 +113,14 @@ class _MarkImageScreenState extends State<MarkImageScreen> {
     if (path != null && path.isNotEmpty) {
       final file = File(path);
       if (await file.exists()) {
-         final generatedId = await ImageService.generateNextImageId(allowAnonymousFallback: false);
-         // final generatedId = "DEBUG_123";
-         
          setState(() {
            _pickedFile = XFile(path);
-           _lastGeneratedId = generatedId;
            _error = null;
          });
       } else {
         setState(() => _error = 'File does not exist: $path');
       }
     }
-  }
-
-  void _removeImage() {
-    setState(() {
-      _pickedFile = null;
-      _error = null;
-      _lastGeneratedId = null;
-      _processedSuccess = false;
-      _processedLocalPath = null;
-    });
   }
 
   Future<void> _processPickedImage() async {

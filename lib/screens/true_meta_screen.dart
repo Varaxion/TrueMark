@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:exif/exif.dart';
 import 'package:image/image.dart' as img;
@@ -84,8 +83,9 @@ class _TrueMetaScreenState extends State<TrueMetaScreen> with SingleTickerProvid
       if (data.isNotEmpty) {
         data.forEach((k, v) {
           String category = 'Miscellaneous';
-          if (k.startsWith('EXIF')) category = 'EXIF Data';
-          else if (k.startsWith('Image')) category = 'Image Parameters';
+          if (k.startsWith('EXIF')) {
+            category = 'EXIF Data';
+          } else if (k.startsWith('Image')) category = 'Image Parameters';
           else if (k.startsWith('GPS')) category = 'GPS Geodata';
           else if (k.startsWith('Thumbnail')) category = 'Thumbnail Info';
 
@@ -269,7 +269,7 @@ class _TrueMetaScreenState extends State<TrueMetaScreen> with SingleTickerProvid
         const SizedBox(height: 16),
         if (_isAnalyzing) Padding(padding: const EdgeInsets.all(32), child: CircularProgressIndicator(color: _iconColor(isDark))),
         if (_categorizedMetadata.isNotEmpty && !_isAnalyzing) ...[
-          ..._categorizedMetadata.entries.map((cat) => _buildCategory(cat.key, cat.value, isDark)).toList(),
+          ..._categorizedMetadata.entries.map((cat) => _buildCategory(cat.key, cat.value, isDark)),
         ],
       ]),
     );

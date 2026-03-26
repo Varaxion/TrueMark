@@ -12,7 +12,6 @@ import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:path/path.dart' as p;
-import '../services/image_service.dart';
 import '../services/steg_service.dart';
 import '../services/firestore_rest_service.dart';
 import '../services/firestore_service.dart';
@@ -38,7 +37,6 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
   bool _protecting = false;
   bool _protectSuccess = false;
   String? _protectedFilePath;
-  String? _baseNumber;
 
   // Verify Tab State
   File? _fileToVerify;
@@ -56,20 +54,12 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
       vsync: this,
       initialIndex: widget.isProtectMode ? 0 : 1,
     );
-    _ensureUserMeta();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  Future<void> _ensureUserMeta() async {
-    try {
-      final meta = await ImageService.ensureUserMeta(allowAnonymousFallback: false);
-      if (mounted) setState(() => _baseNumber = meta['baseNumber'] as String?);
-    } catch (e) {}
   }
 
   // --- ACTIONS ---
@@ -182,9 +172,7 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
     await Future.delayed(const Duration(milliseconds: 1500));
     try {
       String? extractedPayload = await StegService.extractStringFromFile(inputFile: _fileToVerify!, password: kTrueMarkSharedKey);
-      if (extractedPayload == null) {
-         extractedPayload = await StegService.extractStringFromImage(inputFile: _fileToVerify!, password: kTrueMarkSharedKey);
-      }
+      extractedPayload ??= await StegService.extractStringFromImage(inputFile: _fileToVerify!, password: kTrueMarkSharedKey);
       
       if (extractedPayload == null) {
         setState(() { _verifying = false; _hasVerifyResult = true; _isSignatureValid = false; _verifyMessage = 'Unrecognized Asset.\nNo TrueMark proof discovered.'; });
@@ -359,7 +347,7 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
           if (record.ownerName != null) _infoRow("Creator Name", record.ownerName!, isDark),
           if (record.ownerUsername != null) _infoRow("Username", "@${record.ownerUsername!}", isDark),
           _infoRow("UID Linked", record.ownerUid.substring(0, 8).toUpperCase(), isDark),
-          _infoRow("Timestamp", DateFormat.yMMMd().format(DateTime.fromMillisecondsSinceEpoch(record.timestamp.toInt())), isDark),
+           _infoRow("Timestamp", DateFormat.yMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(record.timestamp.toInt())), isDark),
        ]
      ]));
   }

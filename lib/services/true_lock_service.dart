@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:math';
 import 'package:encrypt/encrypt.dart' as enc;
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 class TrueLockService {
   // Pure Dart binary AES implementation - bypasses Platform Channel size constraints.
@@ -92,20 +92,30 @@ class TrueLockService {
     if (!await inputFile.exists()) throw "Input file does not exist on disk.";
     final bytes = await inputFile.readAsBytes();
     if (bytes.isEmpty) throw "Source file evaluates to 0-bytes. Try picking it from TrueVault.";
-    
+
     final ext = p.extension(inputFile.path);
-    final encryptedData = await encryptData(bytes, password, ext);
-    
     final originalBase = p.basenameWithoutExtension(inputFile.path);
-    final outPath = p.join(p.dirname(inputFile.path), '${originalBase}_TrueLock_Seal_${DateTime.now().millisecondsSinceEpoch}.tmk');
-    final outFile = File(outPath);
-    await outFile.writeAsBytes(encryptedData, flush: true);
+    final outDir = await getApplicationDocumentsDirectory();
+    final outPath = p.join(outDir.path, '${originalBase}_TrueLock_Seal_${DateTime.now().millisecondsSinceEpoch}.tmk');
+    final encryptedData = await encryptData(bytes, password, ext);
+
+    final outFile = await _writeBytesAtomically(outPath, encryptedData);
+
+    final writtenLen = await outFile.length();
+    if (writtenLen <= 0) {
+      throw "Encryption interrupted during file write (0-byte output). Please retry.";
+    }
     return outFile;
   }
 
   Future<File> decryptFile(File encryptedFile, String password) async {
     if (!await encryptedFile.exists()) throw "Archive file not found.";
-    
+
+    final sourceLen = await encryptedFile.length();
+    if (sourceLen <= 0) {
+      throw "Encrypted wrapper is empty (0 bytes). Encryption was likely interrupted. Please re-encrypt the source file.";
+    }
+
     // Check if the OS gave us a 0-byte ghost file (Android FilePicker bug on new files)
     final fileBytes = await encryptedFile.readAsBytes();
     if (fileBytes.isEmpty) {
@@ -113,23 +123,27 @@ class TrueLockService {
     }
 
     final result = await decryptData(fileBytes, password);
-    
     if (result.bytes.isEmpty) throw "Decrypted payload is unexpectedly empty.";
 
     final currentBase = p.basenameWithoutExtension(encryptedFile.path);
     final outPath = p.join(p.dirname(encryptedFile.path), '${currentBase}_TrueLock_Open_${DateTime.now().millisecondsSinceEpoch}${result.extension}');
-    final outFile = File(outPath);
-    await outFile.writeAsBytes(result.bytes, flush: true);
+    final outFile = await _writeBytesAtomically(outPath, result.bytes);
     return outFile;
   }
 
-  // --- HELPERS ---
-
-  Future<Uint8List> _generateRandomBytes(int length) async {
-    return Uint8List.fromList(List.generate(length, (_) => _secureRandom.nextInt(256)));
+  Future<File> _writeBytesAtomically(String outPath, List<int> bytes) async {
+    final outFile = File(outPath);
+    final tempFile = File('$outPath.part');
+    if (await tempFile.exists()) {
+      await tempFile.delete();
+    }
+    await tempFile.writeAsBytes(bytes, flush: true);
+    if (await outFile.exists()) {
+      await outFile.delete();
+    }
+    return await tempFile.rename(outPath);
   }
-  
-  final _secureRandom = Random.secure();
+
 }
 
 class _DecryptedResult {

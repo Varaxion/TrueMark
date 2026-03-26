@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'screens/signup_screen.dart';
 import 'screens/login_screen.dart';
@@ -180,7 +179,7 @@ class AuthWrapper extends StatelessWidget {
 
 class _ErrorRetryScreen extends StatelessWidget {
   final String message;
-  const _ErrorRetryScreen({Key? key, required this.message}) : super(key: key);
+  const _ErrorRetryScreen({required this.message});
 
   @override
   Widget build(BuildContext context) {
