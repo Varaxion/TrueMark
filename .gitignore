@@ -77,3 +77,9 @@ build_trash*/
 build_*.txt
 flutter_*.log
 outdated.txt
+
+# Local release artifacts (do not commit)
+TrueMark.exe
+TrueMark.apk
+TrueMark-Windows-x64.zip
+dist/
