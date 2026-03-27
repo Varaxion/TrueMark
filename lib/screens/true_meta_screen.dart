@@ -163,7 +163,8 @@ class _TrueMetaScreenState extends State<TrueMetaScreen> with SingleTickerProvid
     final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
     if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
     final fileToSave = File(path);
-    await fileToSave.copy('${vaultDir.path}/${p.basename(fileToSave.path)}');
+    final copied = await fileToSave.copy('${vaultDir.path}/${p.basename(fileToSave.path)}');
+    await copied.setLastModified(DateTime.now());
     showToast("Purged Asset Secured", backgroundColor: kColorTrueMeta);
   }
 

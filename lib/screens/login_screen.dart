@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -126,11 +127,16 @@ class _LoginScreenState extends State<LoginScreen> {
           
           SafeArea(
             child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  scrollbars: !Platform.isWindows,
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  child: _platformWrap(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
                     // Brand Icon
                     const Icon(Icons.fingerprint_rounded, size: 80, color: Colors.indigoAccent),
                     const SizedBox(height: 24),
@@ -236,13 +242,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _platformWrap({required Widget child}) {
+    if (!Platform.isWindows) return child;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: child,
     );
   }
 

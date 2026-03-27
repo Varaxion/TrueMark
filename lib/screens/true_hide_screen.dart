@@ -192,7 +192,8 @@ class _TrueHideScreenState extends State<TrueHideScreen> with SingleTickerProvid
      final root = await getApplicationDocumentsDirectory();
      final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
      if (!await vaultDir.exists()) await vaultDir.create(recursive: true);
-     await File(path).copy('${vaultDir.path}/${p.basename(path)}');
+      final copied = await File(path).copy('${vaultDir.path}/${p.basename(path)}');
+      await copied.setLastModified(DateTime.now());
      showToast("Protected in Vault", backgroundColor: kColorTrueHide);
   }
 

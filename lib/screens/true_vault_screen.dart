@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -47,6 +48,7 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
   @override
   void initState() {
     super.initState();
+    _loadViewMode();
     _initVaultAuth();
   }
 
@@ -77,6 +79,19 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
         }
       });
     }
+  }
+
+  Future<void> _loadViewMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getBool('truevault_is_grid_view');
+    if (saved != null && mounted) {
+      setState(() => _isGridView = saved);
+    }
+  }
+
+  Future<void> _saveViewMode(bool isGrid) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('truevault_is_grid_view', isGrid);
   }
 
   void _submitPin() async {
@@ -202,7 +217,8 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
       final dir = await _getVaultDirectory();
       final newPath = '${dir.path}/${p.basename(file.path)}';
       try {
-        await file.copy(newPath);
+        final copied = await file.copy(newPath);
+        await copied.setLastModified(DateTime.now());
         showToast("File Securely Imported", backgroundColor: kColorTrueVault);
         _loadVaultFiles();
       } catch (e) {
@@ -356,7 +372,13 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
       Container(padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), color: Colors.black26, child: Row(children: [
         DropdownButtonHideUnderline(child: DropdownButton<String>(value: _sortMode, dropdownColor: const Color(0xFF1C2529), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), icon: const Padding(padding: EdgeInsets.only(left: 8.0), child: Icon(Icons.sort, color: Colors.white70)), items: ['Date (Newest)', 'Date (Oldest)', 'Name (A-Z)', 'Size (Largest)'].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (val) { if (val != null) { setState(() => _sortMode = val); _loadVaultFiles(); } })),
         const Spacer(),
-        IconButton(icon: Icon(_isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded, color: Colors.white), onPressed: () => setState(() => _isGridView = !_isGridView)),
+        IconButton(
+          icon: Icon(_isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded, color: Colors.white),
+          onPressed: () {
+            setState(() => _isGridView = !_isGridView);
+            _saveViewMode(_isGridView);
+          },
+        ),
         IconButton(icon: const Icon(Icons.password_rounded, color: Colors.white70), onPressed: _confirmResetPin, tooltip: "Reset PIN"),
       ])),
       Container(
@@ -374,7 +396,7 @@ class _TrueVaultScreenState extends State<TrueVaultScreen> {
         ),
       ),
       Padding(padding: const EdgeInsets.all(16.0), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("${_vaultFiles.length} Secured Assets", style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)), ElevatedButton.icon(onPressed: _importFile, icon: const Icon(Icons.add_box_rounded, size: 18), label: const Text("Import"), style: ElevatedButton.styleFrom(backgroundColor: kVaultPrimary.withOpacity(0.9), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))))])),
-      Expanded(child: _isLoading ? const Center(child: CircularProgressIndicator(color: Colors.white)) : RefreshIndicator(onRefresh: () => _loadVaultFiles(isPullToRefresh: true), color: kColorTrueVault, backgroundColor: Color(0xFF1E1E1E), child: _vaultFiles.isEmpty ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(kTrueVaultIcon, color: Colors.white24, size: 64), const SizedBox(height: 16), const Text("Vault is Empty", style: TextStyle(color: Colors.white24, fontSize: 18))])) : _isGridView ? GridView.builder(padding: const EdgeInsets.symmetric(horizontal: 16), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 8, mainAxisSpacing: 8), itemCount: _vaultFiles.length, itemBuilder: (context, index) => _buildFileItem(_vaultFiles[index])) : ListView.builder(padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: _vaultFiles.length, itemBuilder: (context, index) => _buildFileItem(_vaultFiles[index])))),
+      Expanded(child: _isLoading ? const Center(child: CircularProgressIndicator(color: Colors.white)) : RefreshIndicator(onRefresh: () => _loadVaultFiles(isPullToRefresh: true), color: kColorTrueVault, backgroundColor: Color(0xFF1E1E1E), child: _vaultFiles.isEmpty ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(kTrueVaultIcon, color: Colors.white24, size: 64), const SizedBox(height: 16), const Text("Vault is Empty", style: TextStyle(color: Colors.white24, fontSize: 18))])) : _isGridView ? GridView.builder(padding: const EdgeInsets.symmetric(horizontal: 16), gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: Platform.isWindows ? 4 : 3, crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: Platform.isWindows ? 1.05 : 1.0), itemCount: _vaultFiles.length, itemBuilder: (context, index) => _buildFileItem(_vaultFiles[index])) : ListView.builder(padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: _vaultFiles.length, itemBuilder: (context, index) => _buildFileItem(_vaultFiles[index])))),
     ]));
   }
 

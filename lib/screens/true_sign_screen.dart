@@ -369,7 +369,8 @@ class _TrueSignScreenState extends State<TrueSignScreen> with SingleTickerProvid
             getApplicationDocumentsDirectory().then((root) {
               final vaultDir = Directory('${root.path}/TrueVault_${user.uid}');
               if (!vaultDir.existsSync()) vaultDir.createSync(recursive: true);
-              File(path).copySync('${vaultDir.path}/${p.basename(path)}');
+                final copied = File(path).copySync('${vaultDir.path}/${p.basename(path)}');
+                copied.setLastModifiedSync(DateTime.now());
               showToast("Identity Proof Vaulted", backgroundColor: kColorTrueSign);
             });
          })),

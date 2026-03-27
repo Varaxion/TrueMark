@@ -135,6 +135,7 @@ class _TrueLockScreenState extends State<TrueLockScreen> with SingleTickerProvid
     final destPath = '${vaultDir.path}/${p.basename(fileToSave.path)}';
     try {
       await _writeFileAtomically(fileToSave, destPath);
+      await File(destPath).setLastModified(DateTime.now());
       final savedLen = await File(destPath).length();
       if (savedLen <= 0) {
         await File(destPath).delete();
