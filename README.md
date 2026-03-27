@@ -1,9 +1,16 @@
 <p align="center">
-	<img src="assets/images/appIcon.png" alt="TrueMark App Icon" width="140" />
+	<img src="assets/images/appIcon.png" alt="TrueMark App Icon" width="200" />
 </p>
 
 # TrueMark
 ## Secure Digital Truth in a Synthetic World.
+
+<p align="center">
+	<img alt="Version" src="https://img.shields.io/badge/version-2.0.0-1E6F5C">
+	<img alt="Platform" src="https://img.shields.io/badge/platform-Android%20%7C%20Windows-1F4E79">
+	<img alt="Core" src="https://img.shields.io/badge/security-AES--256%20CBC-7A3E65">
+	<img alt="Stack" src="https://img.shields.io/badge/built%20with-Flutter-0A84FF">
+</p>
 
 **Version 2.0.0**
 
@@ -12,9 +19,11 @@ TrueMark is a multi-module digital forensics and privacy application designed fo
 The project addresses a modern trust problem: in a synthetic media ecosystem, visual evidence alone is no longer enough. TrueMark introduces cryptographically informed controls that preserve authenticity and traceability while remaining usable for students, researchers, and operational teams.
 
 ## Table of Contents
+- Visual Snapshot
 - Project Vision
 - Key Capabilities
 - Feature Matrix
+- Architecture Flow
 - Module Architecture
 - End-to-End Workflow
 - TrueVault Storage Model
@@ -26,6 +35,26 @@ The project addresses a modern trust problem: in a synthetic media ecosystem, vi
 - Build and Release
 - Troubleshooting
 - Limitations and Future Work
+
+## Visual Snapshot
+
+| Security | Trust | Privacy | Platform |
+|---|---|---|---|
+| AES-256-CBC | Ownership Signature | EXIF Sanitization | Android + Windows |
+| TMK Encapsulation | Verification Pipeline | Covert Embedding | Release Artifacts |
+
+## Architecture Flow
+
+```mermaid
+flowchart LR
+	A[Input Media or Files] --> B[TrueMeta\nInspect and sanitize metadata]
+	B --> C[TrueSign\nEmbed ownership signature]
+	C --> D[TrueLock\nEncrypt into TMK container]
+	C --> E[TrueHide\nEmbed secret payload]
+	D --> F[TrueVault\nControlled secure storage]
+	E --> F
+	F --> G[Export and Verification]
+```
 
 ## Project Vision
 TrueMark is built around three principles:
