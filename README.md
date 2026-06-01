@@ -1,314 +1,341 @@
-<p align="center">
-	<img src="assets/images/appIcon.png" alt="TrueMark App Icon" width="200" />
-</p>
+<div align="center">
+
+<img src="assets/images/appIcon.png" alt="TrueMark Logo" width="100" height="100" style="margin-bottom: 16px; border-radius: 20px;" />
 
 # TrueMark
-## Secure Digital Truth in a Synthetic World.
+### Secure Digital Truth in a Synthetic World
 
-<p align="center">
-	<img alt="Version" src="https://img.shields.io/badge/version-2.0.0-1E6F5C">
-	<img alt="Platform" src="https://img.shields.io/badge/platform-Android%20%7C%20Windows-1F4E79">
-	<img alt="Core" src="https://img.shields.io/badge/security-AES--256%20CBC-7A3E65">
-	<img alt="Stack" src="https://img.shields.io/badge/built%20with-Flutter-0A84FF">
-</p>
+*A multi-module digital forensics and privacy application designed for academic and practical use in high-risk media authenticity scenarios.*
 
-**Version 2.0.0**
+<br />
 
-TrueMark is a multi-module digital forensics and privacy application designed for academic and practical use in high-risk media authenticity scenarios. It integrates cryptography, steganography, and metadata intelligence into a single workflow so users can prove ownership, protect confidential files, and reduce accidental forensic leakage.
+![Status](https://img.shields.io/badge/Status-Archived_Capstone-critical?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.0.0-333333?style=for-the-badge)
+![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Windows-0078D7?style=for-the-badge&logo=windows&logoColor=white)
+![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![C++](https://img.shields.io/badge/C++-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
+![Core](https://img.shields.io/badge/security-AES--256%20CBC-8E44AD?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-1081C1?style=for-the-badge)
 
-The project addresses a modern trust problem: in a synthetic media ecosystem, visual evidence alone is no longer enough. TrueMark introduces cryptographically informed controls that preserve authenticity and traceability while remaining usable for students, researchers, and operational teams.
+</div>
 
-## Table of Contents
-- Visual Snapshot
-- Project Vision
-- Key Capabilities
-- Feature Matrix
-- Architecture Flow
-- Module Architecture
-- End-to-End Workflow
-- TrueVault Storage Model
-- Security and Cryptography Notes
-- Platform Support
-- Tech Stack
-- Project Structure
-- Setup and Configuration
-- Build and Release
-- Troubleshooting
-- Limitations and Future Work
+<br />
 
-## Visual Snapshot
+> [!NOTE]
+> **TrueMark** is a comprehensive capstone project completed in March 2026 at **VIT Bhopal University**. It integrates cryptography, steganography, and metadata analysis into a single workflow so users can prove ownership, protect confidential files, and reduce accidental forensic leakage.
 
-| Security | Trust | Privacy | Platform |
-|---|---|---|---|
-| AES-256-CBC | Ownership Signature | EXIF Sanitization | Android + Windows |
-| TMK Encapsulation | Verification Pipeline | Covert Embedding | Release Artifacts |
+---
 
-## Architecture Flow
+## 📑 Table of Contents
+
+<details open>
+<summary><b>Click to Expand/Collapse</b></summary>
+<br>
+
+- 🌍 [**Project Vision**](#-project-vision)
+- ✨ [**Key Capabilities & Modules**](#-key-capabilities--modules)
+- 📸 [**App Gallery**](#-app-gallery)
+- 📂 [**Project Directory Structure**](#-project-directory-structure)
+- 🏗️ [**System Architecture**](#️-system-architecture)
+- 🛡️ [**Security & Cryptography Model**](#️-security--cryptography-model)
+- ⚙️ [**Setup & Build Guide**](#️-setup--build-guide)
+- 📄 [**Academic Reports & Syllabi**](#-academic-reports--syllabi)
+- 🎓 [**Academic Origins & Team**](#-academic-origins--team)
+
+</details>
+
+---
+
+## 🌍 Project Vision
+
+TrueMark addresses a modern trust problem: in a synthetic media ecosystem, visual evidence alone is no longer enough. The platform is built around three core principles:
+1. **Authenticity:** Prove media ownership and tamper resistance.
+2. **Confidentiality:** Protect payloads in transport and at rest.
+3. **Operational Safety:** Reduce metadata leaks and handling errors.
+
+---
+
+## ✨ Key Capabilities & Modules
+
+| Module | Primary Input | Primary Output | Core Security Method | Main Use Case |
+| :--- | :--- | :--- | :--- | :--- |
+| **TrueSign** | Image + Identity Metadata | Signed image artifact | Encrypted LSB steganographic watermark | Ownership proof & authenticity tracking |
+| **TrueLock** | Any file format | Encrypted `.tmk` container | AES-256-CBC with PKCS7 padding | Confidential transfer & secure archival |
+| **TrueHide** | Cover media + hidden payload | Stego output carrier | Covert payload embedding | Low-visibility data transport |
+| **TrueMeta** | Media file | Sanitized file | EXIF metadata parsing & scrubbing | Privacy protection & leak prevention |
+| **TrueVault**| Internal App Artifacts | Managed vault entries | Controlled in-app storage boundary | Secure evidence chain-of-custody |
+
+---
+
+## 📸 App Gallery
+
+<div align="center">
+  <table>
+    <tr>
+      <td><img src="docs/screenshots/1-authentication/auth-1-sign-in.jpg" width="250" /></td>
+      <td><img src="docs/screenshots/2-navigation/nav-1-dashboard-1.jpg" width="250" /></td>
+    </tr>
+    <tr>
+      <td><img src="docs/screenshots/2-navigation/nav-3-identity-1.jpg" width="250" /></td>
+      <td><img src="docs/screenshots/2-navigation/nav-5-mission-1.jpg" width="250" /></td>
+    </tr>
+    <tr>
+      <td><img src="docs/screenshots/3-true-sign/true-sign-1.jpg" width="250" /></td>
+      <td><img src="docs/screenshots/3-true-sign/true-sign-5.jpg" width="250" /></td>
+    </tr>
+    <tr>
+      <td><img src="docs/screenshots/4-true-lock/true-lock-1.jpg" width="250" /></td>
+      <td><img src="docs/screenshots/4-true-lock/true-lock-5.jpg" width="250" /></td>
+    </tr>
+    <tr>
+      <td><img src="docs/screenshots/5-true-hide/true-hide-1.jpg" width="250" /></td>
+      <td><img src="docs/screenshots/5-true-hide/true-hide-5.jpg" width="250" /></td>
+    </tr>
+    <tr>
+      <td><img src="docs/screenshots/6-true-meta/true-meta-1.jpg" width="250" /></td>
+      <td><img src="docs/screenshots/6-true-meta/true-meta-6.jpg" width="250" /></td>
+    </tr>
+    <tr>
+      <td><img src="docs/screenshots/7-true-vault/true-vault-1.jpg" width="250" /></td>
+      <td><img src="docs/screenshots/7-true-vault/true-vault-3.jpg" width="250" /></td>
+    </tr>
+  </table>
+</div>
+
+<br/>
+
+👉 **[View Full Screenshot Gallery (All Modules)](docs/screenshots/)**
+
+---
+
+## 📂 Project Directory Structure
+
+```text
+📦 TrueMark
+ ┣ 📂 android/                 # Native Android embedding and Gradle configurations
+ ┣ 📂 assets/
+ ┃ ┗ 📂 images/                # App icon, branding graphics, and UI placeholders
+ ┣ 📂 dist/                    # Compiled release artifacts (.apk, .exe)
+ ┣ 📂 docs/
+ ┃ ┣ 📂 academic/              # Capstone documentation, syllabi, and reports
+ ┃ ┗ 📂 screenshots/           # Comprehensive gallery of the app's interface
+ ┣ 📂 lib/                     # Core Flutter Application Code
+ ┃ ┣ 📂 models/                # Strongly-typed data contracts
+ ┃ ┣ 📂 screens/               # Feature-isolated UI views
+ ┃ ┃ ┣ 📜 true_lock_screen.dart
+ ┃ ┃ ┣ 📜 true_sign_screen.dart
+ ┃ ┃ ┗ 📜 ...
+ ┃ ┣ 📂 services/              # Core cryptographic and processing logic
+ ┃ ┃ ┣ 📜 true_lock_service.dart  # AES-256 implementation
+ ┃ ┃ ┣ 📜 steg_service.dart       # LSB steganography engine
+ ┃ ┃ ┗ 📜 image_service.dart      # EXIF parsing and manipulation
+ ┃ ┣ 📂 widgets/               # Reusable components and Win32 custom frame
+ ┃ ┗ 📜 main.dart              # Entry point, Firebase init, and routing
+ ┣ 📂 windows/                 # Custom Win32 native wrapper setup
+ ┣ 📜 firebase.json            # Firebase CLI routing configuration
+ ┣ 📜 pubspec.yaml             # Dart dependencies and asset declarations
+ ┗ 📜 LICENSE                  # MIT License with custom exclusions
+```
+
+---
+
+## 🏗️ System Architecture
+
+TrueMark is designed using a feature-first, layered architecture prioritizing modularity, security, and scalability.
 
 ```mermaid
-flowchart LR
-	A[Input Media or Files] --> B[TrueMeta\nInspect and sanitize metadata]
-	B --> C[TrueSign\nEmbed ownership signature]
-	C --> D[TrueLock\nEncrypt into TMK container]
-	C --> E[TrueHide\nEmbed secret payload]
-	D --> F[TrueVault\nControlled secure storage]
-	E --> F
-	F --> G[Export and Verification]
+flowchart TD
+    subgraph UI["📱 Presentation Layer (Flutter)"]
+        A1[Authentication] --> A2[Module Dashboard]
+        A2 --> A3[Input Validation & UI State]
+    end
+
+    subgraph Core["⚙️ Cryptographic Service Layer"]
+        B1[TrueMeta Engine\nEXIF Parsing] 
+        B2[TrueSign & TrueHide\nLSB Steganography]
+        B3[TrueLock Engine\nAES-256-CBC]
+    end
+
+    subgraph Storage["💾 Persistence & Cloud"]
+        C1[(TrueVault Local OS Dir)]
+        C2[(Firebase Firestore)]
+    end
+
+    A3 -->|Media Inspection| B1
+    A3 -->|Image Embedding| B2
+    A3 -->|File Encryption| B3
+
+    B1 -->|Sanitized Media| C1
+    B2 -->|Stego Output| C1
+    B3 -->|.tmk Container| C1
+
+    B2 -.->|Sync Signature Hash| C2
 ```
 
-## Project Vision
-TrueMark is built around three principles:
-- Authenticity: prove media ownership and tamper resistance.
-- Confidentiality: protect payloads in transport and at rest.
-- Operational Safety: reduce metadata leaks and handling errors.
+### 1. Data Flow and State Management
 
-The core objective is to create an explainable, auditable media security pipeline that can be demonstrated in capstone environments and scaled to real operational contexts.
+1. **User Action**: The user initiates a secure action (e.g., encrypting a file via `TrueLockScreen`).
+2. **UI Validation**: The UI checks for file presence, non-empty passwords, and valid extensions.
+3. **Service Invocation**: The Screen delegates the byte manipulation to the `TrueLockService`. The heavy cryptographic lifting happens asynchronously.
+4. **Vault Persistence**: Once the file is processed (locked, signed, or scrubbed), it is written to the device's secure Application Documents Directory (`TrueVault`).
+5. **Registry Sync (Optional)**: For TrueSign, ownership signatures are synced with Firebase Firestore to ensure cross-device verification capability.
 
-## Key Capabilities
-- Invisible ownership signing with encrypted steganographic payloads.
-- AES-based file sealing into TMK secure containers.
-- Covert payload embedding with capacity checks.
-- Metadata inspection and EXIF sanitization before sharing.
-- Centralized output handling through a secure in-app vault.
-- Cross-platform distribution for Android and Windows.
+### 2. Platform Layering
 
-## Feature Matrix
-| Module | Primary Input | Primary Output | Core Security Method | Validation/Guardrails | Main Use Case |
-|---|---|---|---|---|---|
-| TrueSign | Image + ownership metadata | Signed image artifact | Encrypted LSB steganographic watermark | Signature generation and verification workflow | Ownership proof and authenticity tracking |
-| TrueLock | Any supported file bytes | Encrypted `.tmk` container | AES-256-CBC with PKCS7 padding | Deterministic decrypt path, legacy `TMK01` compatibility | Confidential transfer and secure archival |
-| TrueHide | Cover media + hidden payload | Stego output carrier | Covert payload embedding with key-based reveal | Capacity estimation before embedding | Low-visibility payload transport |
-| TrueMeta | Image/media file | Metadata report + sanitized file | Forensic metadata parsing and scrub pipeline | Human-readable metadata inspection before export | Privacy protection and leak prevention |
-| TrueVault | Generated app artifacts | Auditable managed vault entries | Controlled in-app storage boundary | Naming convention and time-based ordering | Chain-of-custody-friendly artifact management |
+- **Android (`android/`)**: Standard Flutter Android embedding using Gradle build chains. The Firebase configuration is bound natively.
+- **Windows (`windows/`)**: Custom Win32 embedding. TrueMark utilizes `window_manager` to strip away the default OS borders and draw a custom Flutter app bar, forcing fixed resolutions for a consistent forensic desktop experience.
 
-## Module Architecture
+---
 
-### 1. TrueSign (Image Ownership and Verification)
-TrueSign embeds identity and context data into image content using LSB steganography.
+## 🛡️ Security & Cryptography Model
 
-What it does:
-- Encodes ownership metadata into image pixels with minimal visible distortion.
-- Wraps payload data with encryption prior to embedding.
-- Supports verification flow to confirm authenticity claims.
+TrueMark employs multiple layers of digital security to ensure data confidentiality, authenticity, and operational safety.
 
-Why it matters:
-- Enables practical proof-of-origin for images.
-- Helps detect forged or unsigned media in sharing pipelines.
+### 1. TrueLock (Confidentiality)
 
-### 2. TrueLock (Secure Containerization)
-TrueLock converts regular files into encrypted TMK blocks.
+TrueLock provides secure containerization for files. It converts raw file bytes into encrypted `.tmk` containers.
 
-What it does:
-- Encrypts file bytes with AES-256-CBC and PKCS7 padding.
-- Produces locked .tmk output for transport or archival.
-- Restores the original byte stream after correct-key decryption.
-- Preserves compatibility with legacy TMK01 blocks.
+**Cryptographic Specifications:**
+- **Algorithm**: Advanced Encryption Standard (AES)
+- **Key Size**: 256-bit
+- **Mode of Operation**: Cipher Block Chaining (CBC)
+- **Padding Scheme**: PKCS7
+- **Key Derivation**: SHA-256 (Fast, synchronous derivation optimized for mobile hardware).
+- **Initialization Vector (IV)**: 16-byte cryptographically secure random bytes generated per encryption.
 
-Why it matters:
-- Prevents direct inspection of sensitive payloads.
-- Creates a reproducible and auditable lock-unlock cycle.
+**File Structure (`.tmk` Container):**
+- **Header**: 5 bytes (`TMK09`) for versioning and legacy compatibility.
+- **IV**: 16 bytes.
+- **Extension Length**: 1 byte.
+- **Extension Data**: Variable (Restores original format on decryption).
+- **Ciphertext**: The AES encrypted file bytes.
 
-### 3. TrueHide (Covert Payload Embedding)
-TrueHide conceals one file inside another media carrier.
+### 2. TrueSign & TrueHide (Authenticity & Steganography)
 
-What it does:
-- Embeds secondary payloads into supported cover files.
-- Estimates maximum safe capacity before write.
-- Blocks overflow scenarios that would corrupt output.
+TrueMark utilizes **Least Significant Bit (LSB)** steganography to embed data inside image carriers.
 
-Why it matters:
-- Enables low-visibility data transport in constrained channels.
-- Improves reliability by validating capacity before execution.
+**Mechanism:**
+1. The service reads the raw RGB byte arrays of the carrier image.
+2. The payload (ownership signature or hidden file) is converted to a binary stream.
+3. The LSBs of the carrier's pixel channels are systematically flipped to encode the payload.
+4. **Capacity Constraints**: The app estimates maximum safe capacity before writing to prevent visual distortion or file corruption.
 
-### 4. TrueMeta (Metadata Forensics and Sanitization)
-TrueMeta examines and removes privacy-sensitive metadata.
+*Note: In TrueSign, the signature string is AES-encrypted before being embedded, preventing unauthorized extraction or tampering by third parties analyzing the LSBs.*
 
-What it does:
-- Extracts EXIF and related metadata for user inspection.
-- Removes location, device, and timestamp traces when required.
-- Generates safer output for publication or sharing.
+### 3. TrueMeta (Privacy)
 
-Why it matters:
-- Reduces accidental location/device exposure.
-- Strengthens operational hygiene in evidence workflows.
+TrueMeta acts as a forensic scrubber to prevent metadata leakage.
+- Parses `EXIF` data to expose hidden camera serials, GPS coordinates, and timestamps.
+- Repackages the image bytes into a clean slate, removing the EXIF headers before generating a safe output for sharing.
 
-## End-to-End Workflow
-Typical recommended sequence:
-1. Acquire or import source media.
-2. Inspect metadata with TrueMeta.
-3. Sign ownership with TrueSign when authenticity is required.
-4. Lock sensitive files with TrueLock if confidentiality is required.
-5. Use TrueHide for covert transport only when needed.
-6. Store outputs in TrueVault and export final artifacts.
+### 4. TrueVault (Storage Boundary)
 
-## TrueVault Storage Model
-TrueVault acts as a secure in-app storage boundary for generated artifacts.
+Files processed by TrueMark are stored in the OS-provided Application Documents directory.
+- Bypasses public indexing (like Android's MediaStore or Windows generic Downloads).
+- Enforces predictable naming conventions to preserve chain-of-custody.
 
-Design goals:
-- Keep output handling predictable and auditable.
-- Avoid common SAF indexing and write inconsistencies.
-- Maintain stable naming for traceability.
+---
 
-Naming convention:
-[OriginalName]_[Feature]_[Operation]_[Timestamp].[Ext]
+## ⚙️ Setup & Build Guide
 
-Operational notes:
-- View mode preferences are persisted across sessions.
-- Time-based sorting uses vault add/modified timestamps.
-
-## Security and Cryptography Notes
-- Encryption mode: AES-256-CBC.
-- Padding: PKCS7.
-- Key-related hashing/derivation paths use SHA-256 where applicable.
-- Verification and registry paths integrate with Firebase Firestore.
-
-Important:
-- Strong passphrases remain essential to practical security.
-- Covert and cryptographic protections do not replace legal chain-of-custody procedures.
-
-## Platform Support
-- Android: release APK generation supported.
-- Windows: release EXE generation supported.
-
-## Tech Stack
-- Flutter and Dart
-- Firebase Auth and Firestore
-- Image and metadata processing libraries
-- Local secure storage utilities
-- Windows desktop packaging toolchain
-
-## Project Structure
-```text
-TrueMark/
-|- lib/
-|  |- main.dart                      # Entry point, routing shell, theme/bootstrap
-|  |- firebase_options.dart          # Generated Firebase platform config
-|  |- models/                        # Domain models and typed data contracts
-|  |  |- ...                         # Vault item metadata, result DTOs, etc.
-|  |- services/                      # Core business logic and security primitives
-|  |  |- true_lock_service.dart      # TMK encrypt/decrypt engine (AES, container logic)
-|  |  |- steg_service.dart           # LSB hide/extract + capacity estimation
-|  |  |- firestore_rest_service.dart # Registry/verification sync paths
-|  |  |- ...                         # File handling, metadata, utility services
-|  |- providers/                     # App/session state and dependency wiring
-|  |  |- ...                         # View mode/state persistence providers
-|  |- screens/                       # Feature-first presentation layer
-|  |  |- login_screen.dart           # Authentication entry flow
-|  |  |- signup_screen.dart          # Account creation flow
-|  |  |- true_sign_screen.dart       # Ownership signing and verification UI
-|  |  |- true_lock_screen.dart       # Encrypt/decrypt UI for TMK containers
-|  |  |- true_hide_screen.dart       # Covert embedding/extraction UI
-|  |  |- true_meta_screen.dart       # Metadata inspection/sanitization UI
-|  |  |- true_vault_screen.dart      # Secure in-app file explorer
-|  |  |- ...
-|  |- widgets/                       # Reusable UI building blocks
-|  |  |- windows_frame.dart          # Windows desktop frame wrapper
-|  |  |- ...
-|  |- utils/                         # Shared helpers, constants, formatting tools
-|     |- ...
-|- assets/
-|  |- images/
-|     |- appIcon.png                 # Primary app icon (Android + Windows)
-|- android/                          # Android Gradle project and native runner
-|  |- app/
-|  |  |- src/                        # Android manifest/resources/Kotlin runner files
-|  |  |- google-services.json        # Firebase Android configuration
-|  |- build.gradle.kts               # Project-level Gradle configuration
-|  |- gradle.properties              # JVM/Kotlin/Android build toggles
-|  |- settings.gradle.kts
-|- windows/                          # Windows runner, CMake and app resources
-|  |- runner/                        # Native Win32 host app source/resources
-|  |- flutter/                       # Generated platform glue
-|  |- CMakeLists.txt                 # Windows native build definition
-|- test/                             # Widget/unit tests
-|- pubspec.yaml                      # Dependencies, assets, icon generation config
-|- analysis_options.yaml             # Dart analyzer and linting rules
-|- firebase.json                     # Firebase project-level settings
-|- README.md                         # Project documentation
-```
-
-### Layering and Responsibility
-- UI layer (`lib/screens`, `lib/widgets`): renders module workflows, validates user input, and delegates operations to services.
-- Application state layer (`lib/providers`): tracks session and view preferences, enabling persistent UX state.
-- Domain layer (`lib/models`): strongly typed data contracts used between screens and services.
-- Service layer (`lib/services`): handles encryption, steganography, metadata workflows, vault persistence, and Firebase integration.
-- Platform layer (`android`, `windows`): native runner, build tooling, and platform-specific packaging.
-
-### Navigation and Data Flow (High Level)
-1. User action starts in a screen (`lib/screens`).
-2. Screen validates input and invokes service methods (`lib/services`).
-3. Services process bytes/files and return typed results (`lib/models`).
-4. Providers persist state/view preferences where needed (`lib/providers`).
-5. Final artifacts are stored and surfaced in TrueVault.
-
-## Setup and Configuration
+This guide covers how to set up TrueMark for local development and build release artifacts.
 
 ### Prerequisites
-- Flutter SDK (stable channel)
-- Android SDK and build tools
-- Visual Studio 2022 with Desktop development for C++
-- Firebase project configuration for authentication and registry features
+- **Flutter SDK**: `^3.8.1` (stable channel recommended)
+- **Dart SDK**: Required alongside Flutter.
+- **Android**: Android Studio, Android SDK, and standard Gradle build tools.
+- **Windows**: Visual Studio 2022 with the "Desktop development with C++" workload installed.
 
-### Initial Setup
-1. Clone repository.
-2. Install dependencies.
-3. Ensure Firebase config files are present.
-4. Generate launcher icons.
+### 1. Initial Setup
 
-Commands:
+Clone the repository and install dependencies:
 ```bash
+git clone <repository-url>
+cd TrueMark
 flutter pub get
+```
+
+Generate the launcher icons across platforms:
+```bash
 dart run flutter_launcher_icons
 ```
 
-## Build and Release
+### 2. Firebase Configuration
 
-### Android Release
+TrueMark relies on Firebase for Authentication and Firestore (Signature verification). Ensure you have the Firebase CLI installed:
+```bash
+npm install -g firebase-tools
+dart pub global activate flutterfire_cli
+```
+
+Log in and configure your project:
+```bash
+firebase login
+flutterfire configure
+```
+*Select your preferred Firebase project, and choose Android and Windows as the target platforms.*
+
+### 3. Building for Production
+
+#### Android Release
+To build a highly optimized release APK:
 ```bash
 flutter build apk --release
 ```
-Output path:
-- build/app/outputs/flutter-apk/app-release.apk
+The resulting artifact will be located at:
+`build/app/outputs/flutter-apk/app-release.apk`
 
-### Windows Release
+#### Windows Release
+To build the native Win32 executable:
 ```bash
 flutter build windows --release
 ```
-Output path:
-- build/windows/x64/runner/Release/truemark.exe
+The executable will be located at:
+`build/windows/x64/runner/Release/truemark.exe`
 
-### Artifact Copy (Optional)
-```powershell
-Copy-Item -Force "build\app\outputs\flutter-apk\app-release.apk" "TrueMark.apk"
-Copy-Item -Force "build\windows\x64\runner\Release\truemark.exe" "TrueMark.exe"
-```
+### Troubleshooting
 
-## Troubleshooting
-
-### Locked build folders on Windows
-If build cleanup fails due to file locks:
-1. Stop Java, Gradle, and Flutter processes.
-2. Run Gradle daemon stop.
-3. Retry cleanup and build.
-
-### Kotlin incremental cache failures
-If release builds fail with incremental cache close/root mismatch issues:
-- Disable Kotlin incremental compilation in android/gradle.properties.
-- Clear android/.gradle and rebuild.
-
-### Launcher icon config issues
-For flutter_launcher_icons v0.13.x, Windows config must be a map instead of a boolean.
-
-## Limitations and Future Work
-Current limitations:
-- Signature robustness depends on image post-processing pipeline.
-- Capacity constraints vary by carrier format and size.
-- Some operations are optimized for the current supported formats.
-
-Future directions:
-- Stronger resilience testing across aggressive image transforms.
-- Expanded forensic reporting and verification dashboards.
-- Additional platform support and CI-based release automation.
+- **Windows Build Lock**: If building for Windows fails due to a locked `build_trash` or `build` folder, close any running instances of TrueMark, stop Dart background processes, and run `flutter clean`.
+- **Firebase Duplicate App Error**: Handled automatically in `main.dart`, but ensure your `firebase_options.dart` perfectly matches your active project.
 
 ---
-© 2026 TrueMark. Engineered for Digital Truth.
+
+## 🎓 Academic Origins & Capstone Context
+
+This repository represents the final **4th Year Capstone Project** submission for **VIT Bhopal University (Class of 2026)**. 
+Engineered and completed in **March 2026**, the project was executed across two rigorous academic phases:
+
+* **DSN4091** — Capstone Project Phase 1
+* **DSN4092** — Capstone Project Phase 2
+
+### 📄 Official Documentation
+
+All academic artifacts are stored in the [`docs/academic/`](docs/academic/) directory.
+
+| Document Type | Phase 1 | Phase 2 | Description |
+| :--- | :---: | :---: | :--- |
+| **Project Reports** | [📄 View PDF](docs/academic/phase-1/capstone-phase-1-report.pdf) | [📄 View PDF](docs/academic/phase-2/capstone-phase-2-report-final.pdf) | Methodology, architecture, testing, and contribution breakdowns. |
+| **Presentations** | [📊 View Slides](docs/academic/phase-1/capstone-phase-1-presentation.pdf) | [📊 View Slides](docs/academic/phase-2/capstone-phase-2-presentation-final.pdf) | The official slide decks used for the Capstone defense. |
+| **Course Syllabi** | [🏫 View PDF](docs/academic/phase-1/capstone-phase-1-syllabus.pdf) | [🏫 View PDF](docs/academic/phase-2/capstone-phase-2-syllabus.pdf) | Official curriculum outlines dictating the project constraints. |
+
+---
+
+### 👥 Capstone Project, Group-5
+Engineered by **B.Tech. Computer Science & Engineering (Core)** students from the **Batch of 2026**.
+
+| Member | Registration No. | Primary Role |
+| :--- | :--- | :--- |
+| **[Jit Surani](https://github.com/JitSurani)** | `22BCE10354` | 🛡️ System Architect |
+| **[Rushabh Wagh](https://github.com/wrexrus)** | `22BCE10364` | ⚙️ Backend Developer |
+| **[Kavya](https://github.com/Varaxion)** | `22BCE10385` | 🎨 Frontend Developer |
+| **[Tejas Pathak](https://github.com/tejas-0-5)** | `22BCE10853` | ☁️ Cloud Engineer |
+| **[Simarpreet Singh](https://github.com/Simarpreet-2607)** | `22BCE10914` | 🔬 QA Engineer |
+
+<br />
+
+<div align="center">
+  <em>TrueMark • Engineered for Digital Truth.</em>
+</div>

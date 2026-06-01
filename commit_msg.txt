@@ -1,0 +1,7 @@
+docs(repo): restructure academic assets and completely overhaul README
+-Consolidate standalone architecture, security, and setup docs into main README
+-Extract full screenshot gallery to dedicated docs/screenshots/README.md
+-Organize phase 1 and 2 academic reports/syllabi into docs/academic/
+-Update LICENSE to explicitly exclude proprietary academic and design assets
+-Enhance system architecture diagram with layered mermaid flowchart
+-Refactor presentation layout for Group 5 capstone team members
