@@ -1,6 +1,3 @@
-docs(repo): finalize README layout, links, and project attribution
--Symmetrically align App Gallery with true-vault-2.jpg addition
--Refactor academic documentation section into descriptive directory links
--Implement standalone Downloads & Releases section for v2.0.0 binaries
--Append MIT License section with academic property exclusions
--Transform Capstone group text attribution into stylized markdown labels
+docs(repo): revert credits section styling to paragraph format
+-Remove markdown badges from Credits section
+-Restore text attribution as requested by author

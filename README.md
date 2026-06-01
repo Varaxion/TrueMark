@@ -339,13 +339,7 @@ This project is licensed under the **MIT License**.
 
 ### 👥 Credits
 
-![Group](https://img.shields.io/badge/Team-Group--5-02569B?style=for-the-badge)
-![Project](https://img.shields.io/badge/Project-Capstone-8E44AD?style=for-the-badge)
-![Degree](https://img.shields.io/badge/Degree-B.Tech._CSE_(Core)-2EA44F?style=for-the-badge)
-![University](https://img.shields.io/badge/University-VIT_Bhopal-D32F2F?style=for-the-badge)
-![Batch](https://img.shields.io/badge/Batch-Class_of_2026-F39C12?style=for-the-badge)
-
-<br/>
+Engineered by students of Group-5, Capstone Project, B.Tech. CSE (Core), VIT Bhopal University, class of 2026.
 
 | Member | Registration No. | Primary Role |
 | :--- | :--- | :--- |
