@@ -1,6 +1,6 @@
-docs(repo): refine README formatting and documentation layout
--Format App Gallery table into a dense 3-column grid
--Simplify Official Documentation section into bulleted markdown links
--Update header naming convention to 'Credits' for team section
--Refine Capstone attribution sentence
--Replace em-dashes with hyphens for standardized typography
+docs(repo): finalize README layout, links, and project attribution
+-Symmetrically align App Gallery with true-vault-2.jpg addition
+-Refactor academic documentation section into descriptive directory links
+-Implement standalone Downloads & Releases section for v2.0.0 binaries
+-Append MIT License section with academic property exclusions
+-Transform Capstone group text attribution into stylized markdown labels

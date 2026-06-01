@@ -96,6 +96,7 @@ TrueMark addresses a modern trust problem: in a synthetic media ecosystem, visua
     </tr>
     <tr>
       <td><img src="docs/screenshots/7-true-vault/true-vault-1.jpg" width="250" /></td>
+      <td><img src="docs/screenshots/7-true-vault/true-vault-2.jpg" width="250" /></td>
       <td><img src="docs/screenshots/7-true-vault/true-vault-3.jpg" width="250" /></td>
     </tr>
   </table>
@@ -301,7 +302,7 @@ The executable will be located at:
 
 ## 🎓 Academic Origins & Capstone Context
 
-This repository represents the final year Capstone Project submission for **VIT Bhopal University (Class of 2026)**. 
+This repository represents the final year Capstone Project submission for **VIT Bhopal University**. 
 Engineered and completed in **March 2026**, the project was executed across two rigorous academic phases:
 
 * **DSN4091** - Capstone Project Phase 1
@@ -311,14 +312,40 @@ Engineered and completed in **March 2026**, the project was executed across two 
 
 All academic artifacts are stored in the [`docs/academic/`](docs/academic/) directory.
 
-* **Project Reports:** [Phase 1](docs/academic/phase-1/capstone-phase-1-report.pdf) | [Phase 2](docs/academic/phase-2/capstone-phase-2-report-final.pdf) - Methodology, architecture, testing, and contribution breakdowns.
-* **Presentations:** [Phase 1](docs/academic/phase-1/capstone-phase-1-presentation.pdf) | [Phase 2](docs/academic/phase-2/capstone-phase-2-presentation-final.pdf) - The official slide decks used for the Capstone defense.
-* **Course Syllabi:** [Phase 1](docs/academic/phase-1/capstone-phase-1-syllabus.pdf) | [Phase 2](docs/academic/phase-2/capstone-phase-2-syllabus.pdf) - Official curriculum outlines dictating the project constraints.
+* **Project Reports:** Detailed documents covering methodology, system architecture, testing procedures, and contribution breakdowns.
+* **Presentations:** The official slide decks presented during the final Capstone defenses.
+* **Course Syllabi:** The official university curriculum outlines dictating the project requirements and constraints.
+
+👉 **Browse Documents:** **[Phase 1 Directory](docs/academic/phase-1/)** &nbsp;|&nbsp; **[Phase 2 Directory](docs/academic/phase-2/)**
 
 ---
 
-### Credits
-Engineered by students of Group-5, Capstone Project, B.Tech. CSE (Core), VIT Bhopal University, class of 2026.
+## 📥 Downloads & Releases
+
+While the repository structure has evolved to include comprehensive academic and architectural documentation, the core source code remains unchanged from the final build. 
+You can directly download the fully compiled application binaries from our GitHub Releases:
+
+👉 **[Download TrueMark v2.0.0 (Android APK & Windows ZIP)](https://github.com/Varaxion/TrueMark/releases/tag/v2.0.0)**
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
+
+> **Note**: Academic reports, presentations, slide decks, UI mockups, and custom branding assets located within the `docs/` directory are **explicitly excluded** from the open-source license and remain the intellectual property of the original authors.
+
+---
+
+### 👥 Credits
+
+![Group](https://img.shields.io/badge/Team-Group--5-02569B?style=for-the-badge)
+![Project](https://img.shields.io/badge/Project-Capstone-8E44AD?style=for-the-badge)
+![Degree](https://img.shields.io/badge/Degree-B.Tech._CSE_(Core)-2EA44F?style=for-the-badge)
+![University](https://img.shields.io/badge/University-VIT_Bhopal-D32F2F?style=for-the-badge)
+![Batch](https://img.shields.io/badge/Batch-Class_of_2026-F39C12?style=for-the-badge)
+
+<br/>
 
 | Member | Registration No. | Primary Role |
 | :--- | :--- | :--- |
