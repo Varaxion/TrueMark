@@ -77,24 +77,20 @@ TrueMark addresses a modern trust problem: in a synthetic media ecosystem, visua
     <tr>
       <td><img src="docs/screenshots/1-authentication/auth-1-sign-in.jpg" width="250" /></td>
       <td><img src="docs/screenshots/2-navigation/nav-1-dashboard-1.jpg" width="250" /></td>
-    </tr>
-    <tr>
       <td><img src="docs/screenshots/2-navigation/nav-3-identity-1.jpg" width="250" /></td>
-      <td><img src="docs/screenshots/2-navigation/nav-5-mission-1.jpg" width="250" /></td>
     </tr>
     <tr>
+      <td><img src="docs/screenshots/2-navigation/nav-5-mission-1.jpg" width="250" /></td>
       <td><img src="docs/screenshots/3-true-sign/true-sign-1.jpg" width="250" /></td>
       <td><img src="docs/screenshots/3-true-sign/true-sign-5.jpg" width="250" /></td>
     </tr>
     <tr>
       <td><img src="docs/screenshots/4-true-lock/true-lock-1.jpg" width="250" /></td>
       <td><img src="docs/screenshots/4-true-lock/true-lock-5.jpg" width="250" /></td>
-    </tr>
-    <tr>
       <td><img src="docs/screenshots/5-true-hide/true-hide-1.jpg" width="250" /></td>
-      <td><img src="docs/screenshots/5-true-hide/true-hide-5.jpg" width="250" /></td>
     </tr>
     <tr>
+      <td><img src="docs/screenshots/5-true-hide/true-hide-5.jpg" width="250" /></td>
       <td><img src="docs/screenshots/6-true-meta/true-meta-1.jpg" width="250" /></td>
       <td><img src="docs/screenshots/6-true-meta/true-meta-6.jpg" width="250" /></td>
     </tr>
@@ -305,26 +301,24 @@ The executable will be located at:
 
 ## 🎓 Academic Origins & Capstone Context
 
-This repository represents the final **4th Year Capstone Project** submission for **VIT Bhopal University (Class of 2026)**. 
+This repository represents the final year Capstone Project submission for **VIT Bhopal University (Class of 2026)**. 
 Engineered and completed in **March 2026**, the project was executed across two rigorous academic phases:
 
-* **DSN4091** — Capstone Project Phase 1
-* **DSN4092** — Capstone Project Phase 2
+* **DSN4091** - Capstone Project Phase 1
+* **DSN4092** - Capstone Project Phase 2
 
-### 📄 Official Documentation
+### Official Documentation
 
 All academic artifacts are stored in the [`docs/academic/`](docs/academic/) directory.
 
-| Document Type | Phase 1 | Phase 2 | Description |
-| :--- | :---: | :---: | :--- |
-| **Project Reports** | [📄 View PDF](docs/academic/phase-1/capstone-phase-1-report.pdf) | [📄 View PDF](docs/academic/phase-2/capstone-phase-2-report-final.pdf) | Methodology, architecture, testing, and contribution breakdowns. |
-| **Presentations** | [📊 View Slides](docs/academic/phase-1/capstone-phase-1-presentation.pdf) | [📊 View Slides](docs/academic/phase-2/capstone-phase-2-presentation-final.pdf) | The official slide decks used for the Capstone defense. |
-| **Course Syllabi** | [🏫 View PDF](docs/academic/phase-1/capstone-phase-1-syllabus.pdf) | [🏫 View PDF](docs/academic/phase-2/capstone-phase-2-syllabus.pdf) | Official curriculum outlines dictating the project constraints. |
+* **Project Reports:** [Phase 1](docs/academic/phase-1/capstone-phase-1-report.pdf) | [Phase 2](docs/academic/phase-2/capstone-phase-2-report-final.pdf) - Methodology, architecture, testing, and contribution breakdowns.
+* **Presentations:** [Phase 1](docs/academic/phase-1/capstone-phase-1-presentation.pdf) | [Phase 2](docs/academic/phase-2/capstone-phase-2-presentation-final.pdf) - The official slide decks used for the Capstone defense.
+* **Course Syllabi:** [Phase 1](docs/academic/phase-1/capstone-phase-1-syllabus.pdf) | [Phase 2](docs/academic/phase-2/capstone-phase-2-syllabus.pdf) - Official curriculum outlines dictating the project constraints.
 
 ---
 
-### 👥 Capstone Project, Group-5
-Engineered by **B.Tech. Computer Science & Engineering (Core)** students from the **Batch of 2026**.
+### Credits
+Engineered by students of Group-5, Capstone Project, B.Tech. CSE (Core), VIT Bhopal University, class of 2026.
 
 | Member | Registration No. | Primary Role |
 | :--- | :--- | :--- |
