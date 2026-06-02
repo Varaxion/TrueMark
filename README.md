@@ -275,6 +275,66 @@ flutterfire configure
 ```
 *Select your preferred Firebase project, and choose Android and Windows as the target platforms.*
 
+> [!IMPORTANT]
+> The committed Firebase config files in this repository are example templates only. If you build from source, copy `lib/firebase_options.example.dart` to `lib/firebase_options.dart` locally, copy `android/app/google-services.json.example` to `android/app/google-services.json`, and fill in your own Firebase values on your machine only.
+
+## 🔐 Security: Handling Exposed API Keys (What you must do)
+
+If API keys have already been committed but you need the released APK and ZIP/EXE to keep working, follow these exact safe steps **in this order**. Do not delete the old key until you've verified the new settings work with your released artifacts.
+
+1. Backup release artifacts
+
+  - Ensure the released `.apk` and `.zip` (containing `.exe`) are stored in GitHub Releases or another safe storage location.
+
+2. Create a new API key (optional but recommended)
+
+  - In Google Cloud Console → APIs & Services → Credentials → Create credentials → API key.
+  - Name it `truemark-release-YYYYMMDD` for clarity.
+
+3. Restrict the new key and the existing key
+
+  - Under the key's **Application restrictions** set:
+    - Android apps: add package name `com.example.truemark` and the release signing certificate SHA-1 used to sign your released `.apk`.
+    - iOS apps: add the app bundle id if applicable.
+  - Under **API restrictions** restrict to only the APIs used (e.g., `Firebase`, `Cloud Firestore`, `Identity Toolkit`).
+
+  Important: Keep the old key active while you validate the new key. If the released APK/EXE must continue to use the old key, keep it enabled with the tightened API restrictions.
+
+4. Verify keys and logs
+
+  - In Google Cloud Console → APIs & Services → Dashboard, monitor the usage of both keys for unusual traffic.
+  - In Firebase Console → Project Settings → Service accounts / App Check, enable App Check for supported services to reduce abuse.
+
+5. How to get the release SHA-1 (exact commands)
+
+  - From release keystore:
+
+    ```bash
+    keytool -list -v -keystore /path/to/keystore.jks -alias your_alias
+    ```
+
+  - From a signed APK file:
+
+    ```bash
+    keytool -printcert -jarfile app-release.apk
+    ```
+
+  Use the SHA-1 value when adding Android app restrictions so the released APK continues to work.
+
+6. EXE / Desktop apps
+
+  - Desktop EXEs cannot be restricted by app signature. Options:
+    - Leave an API key with API-only restrictions (monitor usage) for the EXE, or
+    - Implement a small server-side proxy that authenticates the EXE (recommended for long-term security).
+
+7. Final step (after verification)
+
+  - Once you've verified the new key and restrictions, you may safely delete the older key.
+  - Optionally, scrub the repository history to remove leaked files (use BFG or git-filter-repo). This rewrites history and requires collaborators to re-clone.
+
+---
+
+
 ### 3. Building for Production
 
 #### Android Release

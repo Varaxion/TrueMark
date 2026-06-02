@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "208073109075",
+    "project_id": "truemark-5f8bb",
+    "storage_bucket": "truemark-5f8bb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:208073109075:android:REPLACE_ME",
+        "android_client_info": {
+          "package_name": "com.example.truemark"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_YOUR_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
