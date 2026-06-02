@@ -10,7 +10,6 @@
 <br />
 
 ![Status](https://img.shields.io/badge/Status-Archived_Capstone-critical?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-2.0.0-333333?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Windows-0078D7?style=for-the-badge&logo=windows&logoColor=white)
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
@@ -385,7 +384,7 @@ All academic artifacts are stored in the [`docs/academic/`](docs/academic/) dire
 While the repository structure has evolved to include comprehensive academic and architectural documentation, the core source code remains unchanged from the final build. 
 You can directly download the fully compiled application binaries from our GitHub Releases:
 
-👉 **[Download TrueMark v2.0.0 (Android APK & Windows ZIP)](https://github.com/Varaxion/TrueMark/releases/tag/v2.0.0)**
+👉 **[Download TrueMark Final Build (Android APK & Windows ZIP)](https://github.com/Varaxion/TrueMark/releases/latest)**
 
 ---
 

@@ -1,3 +1,0 @@
-docs(repo): revert credits section styling to paragraph format
--Remove markdown badges from Credits section
--Restore text attribution as requested by author
