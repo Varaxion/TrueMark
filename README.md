@@ -10,14 +10,14 @@
 <br />
 
 ![Status](https://img.shields.io/badge/Status-Archived_Capstone-critical?style=for-the-badge)
-![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Windows-0078D7?style=for-the-badge&logo=windows&logoColor=white)
-![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
-![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
-![C++](https://img.shields.io/badge/C++-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
-![Core](https://img.shields.io/badge/security-AES--256%20CBC-8E44AD?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-1081C1?style=for-the-badge)
+[![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Windows-0078D7?style=for-the-badge&logo=windows&logoColor=white)](https://flutter.dev/multi-platform)
+[![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev)
+[![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com)
+[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com)
+[![C++](https://img.shields.io/badge/C++-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)](https://isocpp.org)
+[![Core](https://img.shields.io/badge/security-AES--256%20CBC-8E44AD?style=for-the-badge)](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
+[![License](https://img.shields.io/badge/License-MIT-1081C1?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 </div>
 
@@ -413,3 +413,9 @@ Engineered by students of Group-5, Capstone Project, B.Tech. CSE (Core), VIT Bho
 <div align="center">
   <em>TrueMark • Engineered for Digital Truth.</em>
 </div>
+
+<br />
+
+<p align="center">
+  <a href="#truemark">⬆️ Back to Top</a>
+</p>
